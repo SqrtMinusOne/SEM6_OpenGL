@@ -49,7 +49,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         GL.glLoadIdentity()
 
     def paintGL(self):
-        print('Paint')
+        # print('Paint')
         self.loadScene()
         self.actionsDict[self.primitiveComboBox.currentText()]()
 
@@ -57,17 +57,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         GL.glPointSize(2)
         GL.glBegin(GL.GL_POINTS)
         w, h = self.openGLWidget.width(), self.openGLWidget.height()
-        for _ in range(5):
+        for _ in range(50):
             GL.glColor3d(*random_rgb())
             GL.glVertex2d(np.random.randint(0, w), np.random.randint(0, h))
             pass
         GL.glEnd()
         GL.glFinish()
-        pass
 
     def paintGL_lines(self):
-        print('Lines')
-        pass
+        GL.glPointSize(2)
+        GL.glBegin(GL.GL_LINES)
+        w, h = self.openGLWidget.width(), self.openGLWidget.height()
+        for _ in range(5 * 2):
+            GL.glColor3d(*random_rgb())
+            GL.glVertex2d(np.random.randint(0, w), np.random.randint(0, h))
+            pass
+        GL.glEnd()
+        GL.glFinish()
 
     def paintGL_line_strip(self):
         pass
