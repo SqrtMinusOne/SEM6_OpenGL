@@ -21,7 +21,7 @@
     <item>
      <widget class="QGroupBox" name="groupBox">
       <property name="title">
-       <string>Controls</string>
+       <string>Элементы управления</string>
       </property>
       <widget class="QComboBox" name="primitiveComboBox">
        <property name="geometry">
@@ -96,6 +96,19 @@
         <string>Выберите примитив</string>
        </property>
       </widget>
+      <widget class="QPushButton" name="updateButton">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>90</y>
+         <width>85</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Обновить</string>
+       </property>
+      </widget>
      </widget>
     </item>
    </layout>
@@ -139,6 +152,22 @@
     <hint type="destinationlabel">
      <x>344</x>
      <y>241</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>updateButton</sender>
+   <signal>clicked()</signal>
+   <receiver>openGLWidget</receiver>
+   <slot>update()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>502</x>
+     <y>137</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>226</x>
+     <y>249</y>
     </hint>
    </hints>
   </connection>
