@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>690</width>
-    <height>483</height>
+    <width>676</width>
+    <height>497</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -23,6 +23,79 @@
       <property name="title">
        <string>Controls</string>
       </property>
+      <widget class="QComboBox" name="primitiveComboBox">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>50</y>
+         <width>151</width>
+         <height>27</height>
+        </rect>
+       </property>
+       <item>
+        <property name="text">
+         <string>GL_POINTS</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>GL_LINES</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>GL_LINE_STRIP</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>GL_LINE_LOOP</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>GL_TRIANGLES</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>GL_TRIANGLE_STRIP</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>GL_TRIANGLE_FAN</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>GL_QUADS</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>GL_QUAD_STRIP</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>GL_POLYGON</string>
+        </property>
+       </item>
+      </widget>
+      <widget class="QLabel" name="label">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>161</width>
+         <height>17</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Выберите примитив</string>
+       </property>
+      </widget>
      </widget>
     </item>
    </layout>
@@ -32,13 +105,13 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>690</width>
+     <width>676</width>
      <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
-     <string>File</string>
+     <string>Файл</string>
     </property>
     <addaction name="actionExit"/>
    </widget>
@@ -47,7 +120,7 @@
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionExit">
    <property name="text">
-    <string>Exit</string>
+    <string>Выход</string>
    </property>
   </action>
  </widget>
