@@ -66,7 +66,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "Примитивы OpenGL"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Примитивы openGL"))
         self.groupBox.setTitle(_translate("MainWindow", "Элементы управления"))
         self.primitiveComboBox.setItemText(0, _translate("MainWindow", "GL_POINTS"))
         self.primitiveComboBox.setItemText(1, _translate("MainWindow", "GL_LINES"))
