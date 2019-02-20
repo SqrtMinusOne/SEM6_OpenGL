@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QMainWindow, QApplication
 from OpenGL import GL, GLU, GLUT
 import logging
 
-from mainwindow import Ui_MainWindow
+from ui.mainwindow import Ui_MainWindow
 
 
 def random_rgb():
