@@ -20,7 +20,7 @@ def random_rgb():
 
 
 def cart2pol(x, y):
-    r = np.sqrt(x**2 + y**2)
+    r = np.sqrt(x ** 2 + y ** 2)
     φ = np.arctan2(y, x)
     return r, φ
 
@@ -57,7 +57,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         GL.glViewport(0, 0, width, height)
         GL.glMatrixMode(GL.GL_PROJECTION)
         GL.glLoadIdentity()
-        GL.glOrtho(0, width, 0, height, -1, 1)
+        GL.glOrtho(0, 1, 0, 1, -1, 1)
         GL.glMatrixMode(GL.GL_MODELVIEW)
         GL.glLoadIdentity()
 
@@ -99,10 +99,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         GL.glFinish()
 
     def drawRandomPoints(self, number):
-        w, h = self.openGLWidget.width(), self.openGLWidget.height()
         for _ in range(number):
             GL.glColor3d(*random_rgb())
-            GL.glVertex2d(np.random.randint(0, w), np.random.randint(0, h))
+            GL.glVertex2d(np.random.random(), np.random.random())
 
     def paintGL_circular_random(self):
         random_dict = {
@@ -111,19 +110,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         }
         GL.glPointSize(2)
         GL.glBegin(random_dict[self.primitiveComboBox.currentText()])
-        w, h = self.openGLWidget.width(), self.openGLWidget.height()
         acc_angle = 0
         N = 5
         GL.glColor3d(*random_rgb())
-        GL.glVertex2d(w / 2, h / 2)
-        max_rad = min(w / 2, h / 2)
+        GL.glVertex2d(0.5, 0.5)
+        max_rad = 0.5
         for _ in range(N):
             GL.glColor3d(*random_rgb())
-            r = np.random.randint(0, max_rad)
+            r = np.random.random() * max_rad
             acc_angle += random.random() * 360 / N
             x, y = pol2cart(r, acc_angle / 180 * np.pi)
-            x += w / 2
-            y += h / 2
+            x += 0.5
+            y += 0.5
             GL.glVertex2d(x, y)
         GL.glEnd()
         GL.glFinish()
@@ -131,13 +129,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def paintGL_quads(self):
         GL.glPointSize(2)
         GL.glBegin(GL.GL_QUADS)
-        w, h = self.openGLWidget.width(), self.openGLWidget.height()
         N = 4
         for _ in range(N):
-            c_x, c_y = np.random.randint(10, w), np.random.randint(10, h)
-            max_rad = min(c_x, w - c_x, c_y, h - c_y)
+            c_x, c_y = np.random.random() * 0.98 + 0.01, np.random.random() * 0.98 + 0.01
+            max_rad = min(c_x, 1 - c_x, c_y, 1 - c_y)
             acc_angle = 0
-            r = np.random.randint(0, max_rad)
+            r = np.random.random() * max_rad
             for _ in range(4):
                 GL.glColor3d(*random_rgb())
                 acc_angle += random.random() * 360 / 4
@@ -151,11 +148,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def paintGL_quad_strip(self):
         GL.glPointSize(2)
         GL.glBegin(GL.GL_QUAD_STRIP)
-        w, h = self.openGLWidget.width(), self.openGLWidget.height()
         N = 4
-        y_s = [np.random.randint(0, h) for _ in range(N)]
+        y_s = [np.random.random() for _ in range(N)]
         y_s.sort()
-        x_s = [[np.random.randint(0, w) for _ in range(2)] for _ in range(N)]
+        x_s = [[np.random.random() for _ in range(2)] for _ in range(N)]
         for i in range(N):
             x_s[i].sort()
             GL.glColor3d(*random_rgb())
@@ -168,20 +164,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def paintGL_polygon(self):
         GL.glPointSize(2)
         GL.glBegin(GL.GL_POLYGON)
-        w, h = self.openGLWidget.width(), self.openGLWidget.height()
         acc_angle = 0
         N = 4
-        print('-----')
-        max_rad = min(w / 2, h / 2)
-        r = np.random.randint(max_rad / 2, max_rad)
+        r = np.random.random() * 0.5
         for _ in range(N):
             GL.glColor3d(*random_rgb())
             acc_angle += random.random() * 360 / N
             x, y = pol2cart(r, acc_angle / 180 * np.pi)
-            print(r, acc_angle)
-            print(x, y)
-            x += w / 2
-            y += h / 2
+            x += 0.5
+            y += 0.5
             GL.glVertex2d(x, y)
         GL.glEnd()
         GL.glFinish()
@@ -189,6 +180,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 if __name__ == "__main__":
     import sys
+
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
