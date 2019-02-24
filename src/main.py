@@ -42,6 +42,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.primitiveComboBox.activated.connect(self.resetRandomAndUpdate)
         self.AlphaSlider.valueChanged.connect(self.openGLWidget.update)
         self.AlphaComboBox.activated.connect(self.openGLWidget.update)
+        self.blendSFactor.activated.connect(self.openGLWidget.update)
+        self.blendDFactor.activated.connect(self.openGLWidget.update)
         self.updateButton.clicked.connect(self.resetRandomAndUpdate)
         self.XScissorSlider.valueChanged.connect(self.openGLWidget.update)
         self.YScissorSlider.valueChanged.connect(self.openGLWidget.update)
@@ -65,9 +67,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.generated_colors = []
         self.openGLWidget.update()
 
-    def onAlphaChange(self):
-        pass
-
     def glScissorTest(self):
         GL.glEnable(GL.GL_SCISSOR_TEST)
         # print(self.x_scissor, self.y_scissor)
@@ -81,6 +80,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         alpha_method = self.AlphaComboBox.currentText()
         alpha_value = self.AlphaSlider.value() / 100
         GL.glAlphaFunc(getattr(GL, alpha_method), alpha_value)
+
+    def glBlendTest(self):
+        GL.glEnable(GL.GL_BLEND)
+        sFactor = self.blendSFactor.currentText()
+        dFactor = self.blendDFactor.currentText()
+        GL.glBlendFunc(getattr(GL, sFactor), getattr(GL, dFactor))
 
     def loadScene(self):
         width, height = self.openGLWidget.width(), self.openGLWidget.height()
@@ -97,6 +102,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         try:
             self.glScissorTest()
             self.glAlphaTest()
+            self.glBlendTest()
             self.actionsDict[self.primitiveComboBox.currentText()]()
         except Exception as exp:
             print(exp)
