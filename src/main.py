@@ -33,13 +33,16 @@ def pol2cart(r, φ):
 
 # noinspection PyPep8Naming
 class MainWindow(QMainWindow, Ui_MainWindow):
-    xScissor = 0
-    yScissor = 0
+    x_scissor = 0
+    y_scissor = 0
+    generated_points = []
+    generated_colors = []
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
-        self.primitiveComboBox.activated.connect(self.openGLWidget.update)
+        self.primitiveComboBox.activated.connect(self.resetRandomAndUpdate)
+        self.updateButton.clicked.connect(self.resetRandomAndUpdate)
         self.XScissorSlider.valueChanged.connect(self.onScissorSliderValueChanged)
         self.YScissorSlider.valueChanged.connect(self.onScissorSliderValueChanged)
         self.openGLWidget.initializeGL()
@@ -57,15 +60,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             "GL_POLYGON": self.paintGL_polygon
         }
 
+    def resetRandomAndUpdate(self):
+        self.generated_points = []
+        self.generated_colors = []
+        self.openGLWidget.update()
+
     def onScissorSliderValueChanged(self):
-        self.xScissor = self.XScissorSlider.value() / 100
-        self.yScissor = self.YScissorSlider.value() / 100
+        self.x_scissor = self.XScissorSlider.value() / 100
+        self.y_scissor = self.YScissorSlider.value() / 100
         self.openGLWidget.update()
 
     def glScissorTest(self):
         GL.glEnable(GL.GL_SCISSOR_TEST)
-        print(self.xScissor, self.yScissor)
-        GL.glScissor(int(self.xScissor * self.openGLWidget.width()), int(self.yScissor * self.openGLWidget.height()),
+        # print(self.x_scissor, self.y_scissor)
+        GL.glScissor(int(self.x_scissor * self.openGLWidget.width()), int(self.y_scissor * self.openGLWidget.height()),
                      self.openGLWidget.width(), self.openGLWidget.height())
 
     def loadScene(self):
@@ -117,30 +125,40 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         GL.glFinish()
 
     def drawRandomPoints(self, number):
-        for _ in range(number):
-            GL.glColor3d(*random_rgb())
-            GL.glVertex2d(np.random.random(), np.random.random())
+        if len(self.generated_points) == 0:
+            self.generated_points = [(np.random.random(), np.random.random()) for _ in range(number)]
+            self.generated_colors = [random_rgb() for _ in range(number)]
+        self.placeGeneratedPoints()
+
+    def placeGeneratedPoints(self):
+        print("Points: ", self.generated_points)
+        print("Colors: ", self.generated_colors)
+        for point, color in zip(self.generated_points, self.generated_colors):
+            GL.glColor3d(*color)
+            GL.glVertex2d(*point)
 
     def paintGL_circular_random(self):
         random_dict = {
             "GL_TRIANGLE_STRIP": GL.GL_TRIANGLE_STRIP,
             "GL_TRIANGLE_FAN": GL.GL_TRIANGLE_FAN,
         }
-        GL.glPointSize(2)
-        GL.glBegin(random_dict[self.primitiveComboBox.currentText()])
         acc_angle = 0
         N = 5
-        GL.glColor3d(*random_rgb())
-        GL.glVertex2d(0.5, 0.5)
-        max_rad = 0.5
-        for _ in range(N):
-            GL.glColor3d(*random_rgb())
-            r = np.random.random() * max_rad
-            acc_angle += random.random() * 360 / N
-            x, y = pol2cart(r, acc_angle / 180 * np.pi)
-            x += 0.5
-            y += 0.5
-            GL.glVertex2d(x, y)
+        if len(self.generated_points) == 0:
+            self.generated_colors.append(random_rgb())
+            self.generated_points.append((0.5, 0.5))
+            max_rad = 0.5
+            self.generated_colors.extend([random_rgb() for _ in range(N)])
+            for _ in range(N):
+                r = np.random.random() * max_rad
+                acc_angle += random.random() * 360 / N
+                x, y = pol2cart(r, acc_angle / 180 * np.pi)
+                x += 0.5
+                y += 0.5
+                self.generated_points.append((x, y))
+        GL.glBegin(random_dict[self.primitiveComboBox.currentText()])
+        GL.glPointSize(2)
+        self.placeGeneratedPoints()
         GL.glEnd()
         GL.glFinish()
 
