@@ -23,92 +23,133 @@
       <property name="title">
        <string>Элементы управления</string>
       </property>
-      <widget class="QComboBox" name="primitiveComboBox">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>50</y>
-         <width>211</width>
-         <height>27</height>
-        </rect>
-       </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
        <item>
-        <property name="text">
-         <string>GL_POINTS</string>
-        </property>
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Выберите примитив</string>
+         </property>
+        </widget>
        </item>
        <item>
-        <property name="text">
-         <string>GL_LINES</string>
-        </property>
+        <widget class="QComboBox" name="primitiveComboBox">
+         <item>
+          <property name="text">
+           <string>GL_POINTS</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_LINES</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_LINE_STRIP</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_LINE_LOOP</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_TRIANGLES</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_TRIANGLE_STRIP</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_TRIANGLE_FAN</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_QUADS</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_QUAD_STRIP</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_POLYGON</string>
+          </property>
+         </item>
+        </widget>
        </item>
        <item>
-        <property name="text">
-         <string>GL_LINE_STRIP</string>
-        </property>
+        <widget class="QPushButton" name="updateButton">
+         <property name="text">
+          <string>Обновить</string>
+         </property>
+        </widget>
        </item>
        <item>
-        <property name="text">
-         <string>GL_LINE_LOOP</string>
-        </property>
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Тест отсечения</string>
+         </property>
+        </widget>
        </item>
        <item>
-        <property name="text">
-         <string>GL_TRIANGLES</string>
-        </property>
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>Х</string>
+         </property>
+        </widget>
        </item>
        <item>
-        <property name="text">
-         <string>GL_TRIANGLE_STRIP</string>
-        </property>
+        <widget class="QSlider" name="XScissorSlider">
+         <property name="maximum">
+          <number>100</number>
+         </property>
+         <property name="singleStep">
+          <number>1</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
        </item>
        <item>
-        <property name="text">
-         <string>GL_TRIANGLE_FAN</string>
-        </property>
+        <widget class="QLabel" name="label_4">
+         <property name="text">
+          <string>Y</string>
+         </property>
+        </widget>
        </item>
        <item>
-        <property name="text">
-         <string>GL_QUADS</string>
-        </property>
+        <widget class="QSlider" name="YScissorSlider">
+         <property name="maximum">
+          <number>100</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
        </item>
        <item>
-        <property name="text">
-         <string>GL_QUAD_STRIP</string>
-        </property>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
        </item>
-       <item>
-        <property name="text">
-         <string>GL_POLYGON</string>
-        </property>
-       </item>
-      </widget>
-      <widget class="QLabel" name="label">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>30</y>
-         <width>201</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Выберите примитив</string>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="updateButton">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>90</y>
-         <width>211</width>
-         <height>27</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Обновить</string>
-       </property>
-      </widget>
+      </layout>
      </widget>
     </item>
    </layout>
@@ -119,7 +160,7 @@
      <x>0</x>
      <y>0</y>
      <width>730</width>
-     <height>31</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

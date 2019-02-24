@@ -33,10 +33,15 @@ def pol2cart(r, φ):
 
 # noinspection PyPep8Naming
 class MainWindow(QMainWindow, Ui_MainWindow):
+    xScissor = 0
+    yScissor = 0
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
         self.primitiveComboBox.activated.connect(self.openGLWidget.update)
+        self.XScissorSlider.valueChanged.connect(self.onScissorSliderValueChanged)
+        self.YScissorSlider.valueChanged.connect(self.onScissorSliderValueChanged)
         self.openGLWidget.initializeGL()
         self.openGLWidget.paintGL = self.paintGL
         self.actionsDict = {
@@ -52,6 +57,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             "GL_POLYGON": self.paintGL_polygon
         }
 
+    def onScissorSliderValueChanged(self):
+        self.xScissor = self.XScissorSlider.value() / 100
+        self.yScissor = self.YScissorSlider.value() / 100
+        self.openGLWidget.update()
+
+    def glScissorTest(self):
+        GL.glEnable(GL.GL_SCISSOR_TEST)
+        print(self.xScissor, self.yScissor)
+        GL.glScissor(int(self.xScissor * self.openGLWidget.width()), int(self.yScissor * self.openGLWidget.height()),
+                     self.openGLWidget.width(), self.openGLWidget.height())
+
     def loadScene(self):
         width, height = self.openGLWidget.width(), self.openGLWidget.height()
         GL.glViewport(0, 0, width, height)
@@ -65,8 +81,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # print('Paint')
         self.loadScene()
         try:
+            self.glScissorTest()
             self.actionsDict[self.primitiveComboBox.currentText()]()
-        except:
+        except Exception as exp:
+            print(exp)
             pass
 
     def paintGL_random(self):
