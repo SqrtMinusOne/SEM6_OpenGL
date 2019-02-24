@@ -33,13 +33,16 @@ def pol2cart(r, φ):
 
 # noinspection PyPep8Naming
 class MainWindow(QMainWindow, Ui_MainWindow):
-    xScissor = 0
-    yScissor = 0
+    x_scissor = 0
+    y_scissor = 0
+    generated_points = []
+    generated_colors = []
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
-        self.primitiveComboBox.activated.connect(self.openGLWidget.update)
+        self.primitiveComboBox.activated.connect(self.resetRandomAndUpdate)
+        self.updateButton.clicked.connect(self.resetRandomAndUpdate)
         self.XScissorSlider.valueChanged.connect(self.onScissorSliderValueChanged)
         self.YScissorSlider.valueChanged.connect(self.onScissorSliderValueChanged)
         self.openGLWidget.initializeGL()
@@ -57,15 +60,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             "GL_POLYGON": self.paintGL_polygon
         }
 
+    def resetRandomAndUpdate(self):
+        self.generated_points = []
+        self.generated_colors = []
+        self.openGLWidget.update()
+
     def onScissorSliderValueChanged(self):
-        self.xScissor = self.XScissorSlider.value() / 100
-        self.yScissor = self.YScissorSlider.value() / 100
+        self.x_scissor = self.XScissorSlider.value() / 100
+        self.y_scissor = self.YScissorSlider.value() / 100
         self.openGLWidget.update()
 
     def glScissorTest(self):
         GL.glEnable(GL.GL_SCISSOR_TEST)
-        print(self.xScissor, self.yScissor)
-        GL.glScissor(int(self.xScissor * self.openGLWidget.width()), int(self.yScissor * self.openGLWidget.height()),
+        # print(self.x_scissor, self.y_scissor)
+        GL.glScissor(int(self.x_scissor * self.openGLWidget.width()), int(self.y_scissor * self.openGLWidget.height()),
                      self.openGLWidget.width(), self.openGLWidget.height())
 
     def loadScene(self):
@@ -117,81 +125,94 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         GL.glFinish()
 
     def drawRandomPoints(self, number):
-        for _ in range(number):
-            GL.glColor3d(*random_rgb())
-            GL.glVertex2d(np.random.random(), np.random.random())
+        if len(self.generated_points) == 0:
+            self.generated_points = [(np.random.random(), np.random.random()) for _ in range(number)]
+            self.generated_colors = [random_rgb() for _ in range(number)]
+        self.placeGeneratedPoints()
+
+    def placeGeneratedPoints(self):
+        for point, color in zip(self.generated_points, self.generated_colors):
+            GL.glColor3d(*color)
+            GL.glVertex2d(*point)
 
     def paintGL_circular_random(self):
         random_dict = {
             "GL_TRIANGLE_STRIP": GL.GL_TRIANGLE_STRIP,
             "GL_TRIANGLE_FAN": GL.GL_TRIANGLE_FAN,
         }
-        GL.glPointSize(2)
-        GL.glBegin(random_dict[self.primitiveComboBox.currentText()])
         acc_angle = 0
         N = 5
-        GL.glColor3d(*random_rgb())
-        GL.glVertex2d(0.5, 0.5)
-        max_rad = 0.5
-        for _ in range(N):
-            GL.glColor3d(*random_rgb())
-            r = np.random.random() * max_rad
-            acc_angle += random.random() * 360 / N
-            x, y = pol2cart(r, acc_angle / 180 * np.pi)
-            x += 0.5
-            y += 0.5
-            GL.glVertex2d(x, y)
+        if len(self.generated_points) == 0:
+            self.generated_colors.append(random_rgb())
+            self.generated_points.append((0.5, 0.5))
+            max_rad = 0.5
+            self.generated_colors.extend([random_rgb() for _ in range(N)])
+            for _ in range(N):
+                r = np.random.random() * max_rad
+                acc_angle += random.random() * 360 / N
+                x, y = pol2cart(r, acc_angle / 180 * np.pi)
+                x += 0.5
+                y += 0.5
+                self.generated_points.append((x, y))
+        GL.glPointSize(2)
+        GL.glBegin(random_dict[self.primitiveComboBox.currentText()])
+        self.placeGeneratedPoints()
         GL.glEnd()
         GL.glFinish()
 
     def paintGL_quads(self):
+        N = 4
+        if len(self.generated_points) == 0:
+            for _ in range(N):
+                c_x, c_y = np.random.random() * 0.98 + 0.01, np.random.random() * 0.98 + 0.01
+                max_rad = min(c_x, 1 - c_x, c_y, 1 - c_y)
+                acc_angle = 0
+                r = np.random.random() * max_rad
+                self.generated_colors.extend([random_rgb() for _ in range(4)])
+                for _ in range(4):
+                    acc_angle += random.random() * 360 / 4
+                    x, y = pol2cart(r, acc_angle / 180 * np.pi)
+                    x += c_x
+                    y += c_y
+                    self.generated_points.append((x, y))
         GL.glPointSize(2)
         GL.glBegin(GL.GL_QUADS)
-        N = 4
-        for _ in range(N):
-            c_x, c_y = np.random.random() * 0.98 + 0.01, np.random.random() * 0.98 + 0.01
-            max_rad = min(c_x, 1 - c_x, c_y, 1 - c_y)
-            acc_angle = 0
-            r = np.random.random() * max_rad
-            for _ in range(4):
-                GL.glColor3d(*random_rgb())
-                acc_angle += random.random() * 360 / 4
-                x, y = pol2cart(r, acc_angle / 180 * np.pi)
-                x += c_x
-                y += c_y
-                GL.glVertex2d(x, y)
+        self.placeGeneratedPoints()
         GL.glEnd()
         GL.glFinish()
 
     def paintGL_quad_strip(self):
+        N = 4
+        if len(self.generated_points) == 0:
+            y_s = [np.random.random() for _ in range(N)]
+            y_s.sort()
+            x_s = [[np.random.random() for _ in range(2)] for _ in range(N)]
+            [l.sort() for l in x_s]
+            self.generated_colors = [random_rgb() for _ in range(N * 2)]
+            for i in range(N):
+                self.generated_points.append((x_s[i][0], y_s[i]))
+                self.generated_points.append((x_s[i][1], y_s[i]))
         GL.glPointSize(2)
         GL.glBegin(GL.GL_QUAD_STRIP)
-        N = 4
-        y_s = [np.random.random() for _ in range(N)]
-        y_s.sort()
-        x_s = [[np.random.random() for _ in range(2)] for _ in range(N)]
-        for i in range(N):
-            x_s[i].sort()
-            GL.glColor3d(*random_rgb())
-            GL.glVertex2d(x_s[i][0], y_s[i])
-            GL.glColor3d(*random_rgb())
-            GL.glVertex2d(x_s[i][1], y_s[i])
+        self.placeGeneratedPoints()
         GL.glEnd()
         GL.glFinish()
 
     def paintGL_polygon(self):
+        N = 8
+        if len(self.generated_points) == 0:
+            acc_angle = 0
+            r = np.random.random() * 0.5
+            self.generated_colors = [random_rgb() for _ in range(N)]
+            for _ in range(N):
+                acc_angle += random.random() * 360 / N
+                x, y = pol2cart(r, acc_angle / 180 * np.pi)
+                x += 0.5
+                y += 0.5
+                self.generated_points.append((x, y))
         GL.glPointSize(2)
         GL.glBegin(GL.GL_POLYGON)
-        acc_angle = 0
-        N = 4
-        r = np.random.random() * 0.5
-        for _ in range(N):
-            GL.glColor3d(*random_rgb())
-            acc_angle += random.random() * 360 / N
-            x, y = pol2cart(r, acc_angle / 180 * np.pi)
-            x += 0.5
-            y += 0.5
-            GL.glVertex2d(x, y)
+        self.placeGeneratedPoints()
         GL.glEnd()
         GL.glFinish()
 
