@@ -145,6 +145,67 @@
         </layout>
        </item>
        <item>
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>Тест прозрачности</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="AlphaComboBox">
+         <item>
+          <property name="text">
+           <string>GL_NEVER</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_LESS</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_EQUAL</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_LEQUAL</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_GREATER</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_NOTEQUAL</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_GEQUAL</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_ALWAYS</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item>
+        <widget class="QSlider" name="AlphaSlider">
+         <property name="maximum">
+          <number>100</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>

@@ -12,8 +12,8 @@ def random_rgb():
     """
         Get random bright enough color
     """
-    color = [random.random() for _ in range(3)]
-    if sum(color) / len(color) < 0.5:
+    color = [random.random() for _ in range(4)]
+    if sum(color[:3]) / 3 < 0.5:
         return random_rgb()
     else:
         return color
@@ -33,8 +33,6 @@ def pol2cart(r, φ):
 
 # noinspection PyPep8Naming
 class MainWindow(QMainWindow, Ui_MainWindow):
-    x_scissor = 0
-    y_scissor = 0
     generated_points = []
     generated_colors = []
 
@@ -42,9 +40,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         self.setupUi(self)
         self.primitiveComboBox.activated.connect(self.resetRandomAndUpdate)
+        self.AlphaSlider.valueChanged.connect(self.openGLWidget.update)
+        self.AlphaComboBox.activated.connect(self.openGLWidget.update)
         self.updateButton.clicked.connect(self.resetRandomAndUpdate)
-        self.XScissorSlider.valueChanged.connect(self.onScissorSliderValueChanged)
-        self.YScissorSlider.valueChanged.connect(self.onScissorSliderValueChanged)
+        self.XScissorSlider.valueChanged.connect(self.openGLWidget.update)
+        self.YScissorSlider.valueChanged.connect(self.openGLWidget.update)
         self.openGLWidget.initializeGL()
         self.openGLWidget.paintGL = self.paintGL
         self.actionsDict = {
@@ -65,16 +65,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.generated_colors = []
         self.openGLWidget.update()
 
-    def onScissorSliderValueChanged(self):
-        self.x_scissor = self.XScissorSlider.value() / 100
-        self.y_scissor = self.YScissorSlider.value() / 100
-        self.openGLWidget.update()
+    def onAlphaChange(self):
+        pass
 
     def glScissorTest(self):
         GL.glEnable(GL.GL_SCISSOR_TEST)
         # print(self.x_scissor, self.y_scissor)
-        GL.glScissor(int(self.x_scissor * self.openGLWidget.width()), int(self.y_scissor * self.openGLWidget.height()),
+        x_scissor = self.XScissorSlider.value() / 100
+        y_scissor = self.YScissorSlider.value() / 100
+        GL.glScissor(int(x_scissor * self.openGLWidget.width()), int(y_scissor * self.openGLWidget.height()),
                      self.openGLWidget.width(), self.openGLWidget.height())
+
+    def glAlphaTest(self):
+        GL.glEnable(GL.GL_ALPHA_TEST)
+        alpha_method = self.AlphaComboBox.currentText()
+        alpha_value = self.AlphaSlider.value() / 100
+        GL.glAlphaFunc(getattr(GL, alpha_method), alpha_value)
 
     def loadScene(self):
         width, height = self.openGLWidget.width(), self.openGLWidget.height()
@@ -90,6 +96,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.loadScene()
         try:
             self.glScissorTest()
+            self.glAlphaTest()
             self.actionsDict[self.primitiveComboBox.currentText()]()
         except Exception as exp:
             print(exp)
@@ -132,7 +139,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def placeGeneratedPoints(self):
         for point, color in zip(self.generated_points, self.generated_colors):
-            GL.glColor3d(*color)
+            GL.glColor4d(*color)
             GL.glVertex2d(*point)
 
     def paintGL_circular_random(self):
