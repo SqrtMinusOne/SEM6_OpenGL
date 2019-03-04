@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>730</width>
+    <width>803</width>
     <height>646</height>
    </rect>
   </property>
@@ -83,6 +83,11 @@
            <string>GL_POLYGON</string>
           </property>
          </item>
+         <item>
+          <property name="text">
+           <string>Фрактал</string>
+          </property>
+         </item>
         </widget>
        </item>
        <item>
@@ -145,6 +150,204 @@
         </layout>
        </item>
        <item>
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>Тест прозрачности</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="AlphaComboBox">
+         <item>
+          <property name="text">
+           <string>GL_ALWAYS</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_GEQUAL</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_NOTEQUAL</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_GREATER</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_EQUAL</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_LESS</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_LEQUAL</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_NEVER</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item>
+        <widget class="QSlider" name="AlphaSlider">
+         <property name="maximum">
+          <number>100</number>
+         </property>
+         <property name="value">
+          <number>100</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_7">
+         <property name="text">
+          <string>Тест смешения цветов</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_6">
+         <property name="text">
+          <string>sFactor</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="blendSFactor">
+         <item>
+          <property name="text">
+           <string>GL_ONE</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_ZERO</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_DST_COLOR</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_ONE_MINUS_DST_COLOR</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_SRC_ALPHA</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_ONE_MINUS_SRC_ALPHA</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_DST_ALPHA</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_ONE_MINUS_DST_ALPHA</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_SRC_ALPHA_SATURATE</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_8">
+         <property name="text">
+          <string>dFactor</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="blendDFactor">
+         <item>
+          <property name="text">
+           <string>GL_ONE</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_ZERO</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_SRC_COLOR</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_ONE_MINUS_SRC_COLOR</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_SRC_ALPHA</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_ONE_MINUS_SRC_ALPHA</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_DST_ALPHA</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GL_ONE_MINUS_DST_ALPHA</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_9">
+         <property name="text">
+          <string>Уровень фрактала</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QSpinBox" name="fractalLevelSpinBox">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>50</number>
+         </property>
+        </widget>
+       </item>
+       <item>
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -167,8 +370,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>730</width>
-     <height>26</height>
+     <width>803</width>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -201,6 +404,38 @@
     <hint type="destinationlabel">
      <x>344</x>
      <y>241</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>fractalLevelSpinBox</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>openGLWidget</receiver>
+   <slot>update()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>667</x>
+     <y>504</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>268</x>
+     <y>324</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>openGLWidget</sender>
+   <signal>resized()</signal>
+   <receiver>openGLWidget</receiver>
+   <slot>update()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>268</x>
+     <y>324</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>268</x>
+     <y>324</y>
     </hint>
    </hints>
   </connection>

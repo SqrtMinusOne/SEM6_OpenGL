@@ -12,8 +12,8 @@ def random_rgb():
     """
         Get random bright enough color
     """
-    color = [random.random() for _ in range(3)]
-    if sum(color) / len(color) < 0.5:
+    color = [random.random() for _ in range(4)]
+    if sum(color[:3]) / 3 < 0.5:
         return random_rgb()
     else:
         return color
@@ -33,8 +33,6 @@ def pol2cart(r, φ):
 
 # noinspection PyPep8Naming
 class MainWindow(QMainWindow, Ui_MainWindow):
-    x_scissor = 0
-    y_scissor = 0
     generated_points = []
     generated_colors = []
 
@@ -42,9 +40,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         self.setupUi(self)
         self.primitiveComboBox.activated.connect(self.resetRandomAndUpdate)
+        self.AlphaSlider.valueChanged.connect(self.openGLWidget.update)
+        self.AlphaComboBox.activated.connect(self.openGLWidget.update)
+        self.blendSFactor.activated.connect(self.openGLWidget.update)
+        self.blendDFactor.activated.connect(self.openGLWidget.update)
         self.updateButton.clicked.connect(self.resetRandomAndUpdate)
-        self.XScissorSlider.valueChanged.connect(self.onScissorSliderValueChanged)
-        self.YScissorSlider.valueChanged.connect(self.onScissorSliderValueChanged)
+        self.XScissorSlider.valueChanged.connect(self.openGLWidget.update)
+        self.YScissorSlider.valueChanged.connect(self.openGLWidget.update)
         self.openGLWidget.initializeGL()
         self.openGLWidget.paintGL = self.paintGL
         self.actionsDict = {
@@ -57,24 +59,35 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             "GL_TRIANGLE_FAN": self.paintGL_circular_random,
             "GL_QUADS": self.paintGL_quads,
             "GL_QUAD_STRIP": self.paintGL_quad_strip,
-            "GL_POLYGON": self.paintGL_polygon
+            "GL_POLYGON": self.paintGL_polygon,
+            "Фрактал": self.paintGL_fractal
         }
 
     def resetRandomAndUpdate(self):
+        self.fractalLevelSpinBox.setEnabled(False)
         self.generated_points = []
         self.generated_colors = []
-        self.openGLWidget.update()
-
-    def onScissorSliderValueChanged(self):
-        self.x_scissor = self.XScissorSlider.value() / 100
-        self.y_scissor = self.YScissorSlider.value() / 100
         self.openGLWidget.update()
 
     def glScissorTest(self):
         GL.glEnable(GL.GL_SCISSOR_TEST)
         # print(self.x_scissor, self.y_scissor)
-        GL.glScissor(int(self.x_scissor * self.openGLWidget.width()), int(self.y_scissor * self.openGLWidget.height()),
+        x_scissor = self.XScissorSlider.value() / 100
+        y_scissor = self.YScissorSlider.value() / 100
+        GL.glScissor(int(x_scissor * self.openGLWidget.width()), int(y_scissor * self.openGLWidget.height()),
                      self.openGLWidget.width(), self.openGLWidget.height())
+
+    def glAlphaTest(self):
+        GL.glEnable(GL.GL_ALPHA_TEST)
+        alpha_method = self.AlphaComboBox.currentText()
+        alpha_value = self.AlphaSlider.value() / 100
+        GL.glAlphaFunc(getattr(GL, alpha_method), alpha_value)
+
+    def glBlendTest(self):
+        GL.glEnable(GL.GL_BLEND)
+        sFactor = self.blendSFactor.currentText()
+        dFactor = self.blendDFactor.currentText()
+        GL.glBlendFunc(getattr(GL, sFactor), getattr(GL, dFactor))
 
     def loadScene(self):
         width, height = self.openGLWidget.width(), self.openGLWidget.height()
@@ -90,6 +103,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.loadScene()
         try:
             self.glScissorTest()
+            self.glAlphaTest()
+            self.glBlendTest()
             self.actionsDict[self.primitiveComboBox.currentText()]()
         except Exception as exp:
             print(exp)
@@ -131,10 +146,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.placeGeneratedPoints()
 
     def placeGeneratedPoints(self):
-        print("Points: ", self.generated_points)
-        print("Colors: ", self.generated_colors)
         for point, color in zip(self.generated_points, self.generated_colors):
-            GL.glColor3d(*color)
+            GL.glColor4d(*color)
             GL.glVertex2d(*point)
 
     def paintGL_circular_random(self):
@@ -156,62 +169,112 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 x += 0.5
                 y += 0.5
                 self.generated_points.append((x, y))
-        GL.glBegin(random_dict[self.primitiveComboBox.currentText()])
         GL.glPointSize(2)
+        GL.glBegin(random_dict[self.primitiveComboBox.currentText()])
         self.placeGeneratedPoints()
         GL.glEnd()
         GL.glFinish()
 
     def paintGL_quads(self):
+        N = 4
+        if len(self.generated_points) == 0:
+            for _ in range(N):
+                c_x, c_y = np.random.random() * 0.98 + 0.01, np.random.random() * 0.98 + 0.01
+                max_rad = min(c_x, 1 - c_x, c_y, 1 - c_y)
+                acc_angle = 0
+                r = np.random.random() * max_rad
+                self.generated_colors.extend([random_rgb() for _ in range(4)])
+                for _ in range(4):
+                    acc_angle += random.random() * 360 / 4
+                    x, y = pol2cart(r, acc_angle / 180 * np.pi)
+                    x += c_x
+                    y += c_y
+                    self.generated_points.append((x, y))
         GL.glPointSize(2)
         GL.glBegin(GL.GL_QUADS)
-        N = 4
-        for _ in range(N):
-            c_x, c_y = np.random.random() * 0.98 + 0.01, np.random.random() * 0.98 + 0.01
-            max_rad = min(c_x, 1 - c_x, c_y, 1 - c_y)
-            acc_angle = 0
-            r = np.random.random() * max_rad
-            for _ in range(4):
-                GL.glColor3d(*random_rgb())
-                acc_angle += random.random() * 360 / 4
-                x, y = pol2cart(r, acc_angle / 180 * np.pi)
-                x += c_x
-                y += c_y
-                GL.glVertex2d(x, y)
+        self.placeGeneratedPoints()
         GL.glEnd()
         GL.glFinish()
 
     def paintGL_quad_strip(self):
+        N = 4
+        if len(self.generated_points) == 0:
+            y_s = [np.random.random() for _ in range(N)]
+            y_s.sort()
+            x_s = [[np.random.random() for _ in range(2)] for _ in range(N)]
+            [l.sort() for l in x_s]
+            self.generated_colors = [random_rgb() for _ in range(N * 2)]
+            for i in range(N):
+                self.generated_points.append((x_s[i][0], y_s[i]))
+                self.generated_points.append((x_s[i][1], y_s[i]))
         GL.glPointSize(2)
         GL.glBegin(GL.GL_QUAD_STRIP)
-        N = 4
-        y_s = [np.random.random() for _ in range(N)]
-        y_s.sort()
-        x_s = [[np.random.random() for _ in range(2)] for _ in range(N)]
-        for i in range(N):
-            x_s[i].sort()
-            GL.glColor3d(*random_rgb())
-            GL.glVertex2d(x_s[i][0], y_s[i])
-            GL.glColor3d(*random_rgb())
-            GL.glVertex2d(x_s[i][1], y_s[i])
+        self.placeGeneratedPoints()
         GL.glEnd()
         GL.glFinish()
 
     def paintGL_polygon(self):
+        N = 8
+        if len(self.generated_points) == 0:
+            acc_angle = 0
+            r = np.random.random() * 0.5
+            self.generated_colors = [random_rgb() for _ in range(N)]
+            for _ in range(N):
+                acc_angle += random.random() * 360 / N
+                x, y = pol2cart(r, acc_angle / 180 * np.pi)
+                x += 0.5
+                y += 0.5
+                self.generated_points.append((x, y))
         GL.glPointSize(2)
         GL.glBegin(GL.GL_POLYGON)
-        acc_angle = 0
-        N = 4
-        r = np.random.random() * 0.5
-        for _ in range(N):
-            GL.glColor3d(*random_rgb())
-            acc_angle += random.random() * 360 / N
-            x, y = pol2cart(r, acc_angle / 180 * np.pi)
-            x += 0.5
-            y += 0.5
-            GL.glVertex2d(x, y)
+        self.placeGeneratedPoints()
         GL.glEnd()
         GL.glFinish()
+
+    def paintGL_fractal(self):
+        self.fractalLevelSpinBox.setEnabled(True)
+        GL.glBegin(GL.GL_LINE_STRIP)
+        start = (0.05, 0.3)
+        end = (0.95, 0.3)
+
+        GL.glVertex2d(*start)
+        self.drawFractal(*start, *end, level=self.fractalLevelSpinBox.value())
+        GL.glEnd()
+
+    def drawFractal(self, x1, y1, x2, y2, level=1):
+        p1, p2 = np.array((x1, y1)), np.array((x2, y2))
+        vec = p2 - p1
+        coef = np.linalg.norm(vec)
+        center = p1 + vec / 2
+        angle = cart2pol(*vec)[1]
+        rotate_matr = np.array([  # Матрица поворота
+            [np.cos(angle), np.sin(angle)],
+            [-np.sin(angle), np.cos(angle)]
+        ])
+        points = np.array([  # Точки
+            (0, 0),
+            (0.25, 0.19 * 0.51),
+            (0.33, 0.69 * 0.51),
+            (0.33, 0.19 * 0.51),
+            (0.57, 0.19 * 0.51),
+            (0.67, 1.00 * 0.51),
+            (0.75, 0.19 * 0.51),
+            (1, 0)
+        ])
+
+        # Повернуть
+        points = np.array([p.dot(rotate_matr) for p in points])
+
+        # Установить начало
+        points = np.array([p + p1 for p in points])
+
+        # Масштабировать
+        points = np.array([p1 + (p - p1) * coef for p in points])
+
+        for i in range(1, len(points)):
+            if level > 1:
+                self.drawFractal(*points[i - 1], *points[i], level - 1)
+            GL.glVertex2d(*points[i])
 
 
 if __name__ == "__main__":
