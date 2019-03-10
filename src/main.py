@@ -60,7 +60,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             "GL_QUADS": self.paintGL_quads,
             "GL_QUAD_STRIP": self.paintGL_quad_strip,
             "GL_POLYGON": self.paintGL_polygon,
-            "Фрактал": self.paintGL_fractal
+            "Фрактал": self.paintGL_fractal,
+            "Кривая Безье 3": self.paintGL_spline
         }
 
     def resetRandomAndUpdate(self):
@@ -149,6 +150,56 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         for point, color in zip(self.generated_points, self.generated_colors):
             GL.glColor4d(*color)
             GL.glVertex2d(*point)
+
+    def paint(self, X1, Y1, X2, Y2):
+
+        line11 = []
+        line12 = []
+        line13 = []
+
+        start = (0.1, 0.1)
+        finish = (0.9, 0.1)
+        draggable1= (X1, Y1)
+        draggable2 = (X2, Y2)
+
+        GL.glBegin(GL.GL_POINTS)
+        GL.glVertex2d(*draggable2)
+        GL.glVertex2d(*draggable1)
+        GL.glEnd()
+
+        GL.glBegin(GL.GL_LINE_STRIP)
+
+        for i in range(100):
+            line11.append(((draggable1[0] - start[0])/100*i + start[0],
+                          (draggable1[1] - start[1])/100*i + start[1]))
+            line12.append(((draggable2[0] - draggable1[0]) / 100 * i + draggable1[0],
+                          (draggable2[1] - draggable1[1]) / 100 * i + draggable1[1]))
+            line13.append(((finish[0] - draggable2[0]) / 100 * i + draggable2[0],
+                          (finish[1] - draggable2[1]) / 100 * i + draggable2[1]))
+
+        line21 = []
+        line22 = []
+
+        for i in range(100):
+            dot1 = line11[i]
+            dot2 = line12[i]
+            dot3 = line13[i]
+            line21.append(((dot2[0] - dot1[0]) / 100 * i + dot1[0],
+                           (dot2[1] - dot1[1]) / 100 * i + dot1[1]))
+            line22.append(((dot3[0] - dot2[0]) / 100 * i + dot2[0],
+                           (dot3[1] - dot2[1]) / 100 * i + dot2[1]))
+
+        for i in range(100):
+            dot21 = line21[i]
+            dot22 = line22[i]
+            GL.glVertex2d((dot22[0] - dot21[0]) / 100 * i + dot21[0],
+                          (dot22[1] - dot21[1]) / 100 * i + dot21[1])
+
+        GL.glEnd()
+        GL.glFinish()
+
+    def paintGL_spline(self):
+        self.paint(0.25, 0.75, 0.75, 0.75)
 
     def paintGL_circular_random(self):
         random_dict = {
