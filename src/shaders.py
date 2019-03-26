@@ -1,4 +1,5 @@
 import numpy as np
+from PyQt5.QtCore import Qt
 
 from PyQt5.QtWidgets import QMainWindow, QApplication
 from OpenGL import GL, GLU, GLUT
@@ -42,15 +43,21 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         self.setupUi(self)
         self.openGLWidget.initializeGL()
         self.openGLWidget.paintGL = self.paintGL
+        self.keyPressEvent = self.onKeyPressed
+        self.angleX = 0
+        self.angleY = 0
 
     def loadScene(self):
         width, height = self.openGLWidget.width(), self.openGLWidget.height()
         GL.glViewport(0, 0, width, height)
         GL.glMatrixMode(GL.GL_PROJECTION)
         GL.glLoadIdentity()
-        GL.glOrtho(0, 1, 0, 1, -1, 1)
+        GL.glFrustum(-1, 1, -1, 1, 1, 20)
         GL.glMatrixMode(GL.GL_MODELVIEW)
         GL.glLoadIdentity()
+        GLU.gluLookAt(0, 0, 1.6, 0, 0, 0, 0, 1, 0)
+        GL.glRotatef(self.angleX, 1, 0, 0)
+        GL.glRotatef(self.angleY, 0, 1, 0)
 
     def paintGL(self):
         self.loadScene()
@@ -135,6 +142,17 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         self.drawFlag(flag_coords)
         self.drawStars()
 
+    def onKeyPressed(self, event):
+        key = event.key()
+        if key == Qt.Key_A:
+            self.angleY = (self.angleY - 5) % 360
+        elif key == Qt.Key_D:
+            self.angleY = (self.angleY + 5) % 360
+        elif key == Qt.Key_W:
+            self.angleX = (self.angleX + 5) % 360
+        elif key == Qt.Key_S:
+            self.angleX = (self.angleX - 5) % 360
+        self.openGLWidget.update()
 
 if __name__ == "__main__":
     import sys
