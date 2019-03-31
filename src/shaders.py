@@ -2,8 +2,8 @@ import threading
 
 import numpy as np
 from PyQt5.QtCore import Qt
-
 from PyQt5.QtWidgets import QMainWindow, QApplication
+from PyQt5.QtGui import QOpenGLShaderProgram, QOpenGLShader
 from OpenGL import GL, GLU
 
 from ui.shaders import Ui_ShadersWindow
@@ -58,12 +58,13 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         self.flag_color = (223 / 255, 37 / 255, 0 / 255)
         self.star_coords = []
         self.setupUi(self)
-        self.openGLWidget.initializeGL()
+        self.openGLWidget.initializeGL = self.initializeGL
         self.openGLWidget.paintGL = self.paintGL
         self.keyPressEvent = self.onKeyPressed
         self.angleX = 0
         self.angleY = 0
         self.mutex = threading.Lock()
+        self.shaders = QOpenGLShaderProgram()
 
     def loadScene(self):
         width, height = self.openGLWidget.width(), self.openGLWidget.height()
@@ -77,24 +78,28 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         GL.glRotatef(self.angleX, 1, 0, 0)
         GL.glRotatef(self.angleY, 0, 1, 0)
 
+    def initializeGL(self):
+        GL.glClearColor(1.0, 1.0, 1.0, 1.0)
+        self.setUpShaders()
+        pass
+
     def paintGL(self):
         self.loadScene()
         try:
             with self.mutex:
-                self.setUpShaders()
+                # self.setUpShaders()
                 self.drawStuff()
         except Exception as exp:
             print(exp)
             pass
 
     def setUpShaders(self):
-        vertex = load_shader(GL.GL_VERTEX_SHADER, 'shader.vert')
-        fragment = load_shader(GL.GL_FRAGMENT_SHADER, 'shader.frag')
-        program = GL.glCreateProgram()
-        GL.glAttachShader(program, vertex)
-        GL.glAttachShader(program, fragment)
-        GL.glLinkProgram(program)
-        GL.glUseProgram(program)
+        self.shaders.addShaderFromSourceFile(QOpenGLShader.Vertex,
+                                             'shader.vert')
+        self.shaders.addShaderFromSourceFile(QOpenGLShader.Fragment,
+                                             'shader.frag')
+        self.shaders.link()
+        self.shaders.bind()
 
     def putStar(self, color, point, radius, angle):
         self.star_coords.extend(star_coords(np.array(point), radius, angle))
