@@ -1,10 +1,10 @@
 import threading
-
 import numpy as np
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMainWindow, QApplication
-from PyQt5.QtGui import QOpenGLShaderProgram, QOpenGLShader
-from OpenGL import GL, GLU
+from PyQt5.QtGui import QOpenGLShaderProgram, QOpenGLShader, QMatrix4x4, \
+    QVector3D
+from OpenGL import GL
 
 from ui.shaders import Ui_ShadersWindow
 from main import pol2cart
@@ -69,25 +69,22 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
     def loadScene(self):
         width, height = self.openGLWidget.width(), self.openGLWidget.height()
         GL.glViewport(0, 0, width, height)
-        GL.glMatrixMode(GL.GL_PROJECTION)
-        GL.glLoadIdentity()
-        GL.glFrustum(-1, 1, -1, 1, 1, 20)
-        GL.glMatrixMode(GL.GL_MODELVIEW)
-        GL.glLoadIdentity()
-        GLU.gluLookAt(0, 0, 1.6, 0, 0, 0, 0, 1, 0)
-        GL.glRotatef(self.angleX, 1, 0, 0)
-        GL.glRotatef(self.angleY, 0, 1, 0)
+        # Why the heck this does not work...
+        # GL.glMatrixMode(GL.GL_PROJECTION)
+        # GL.glLoadIdentity()
+        # GL.glFrustum(-1, 1, -1, 1, 1, 20)
+        # GL.glMatrixMode(GL.GL_MODELVIEW)
+        # GL.glLoadIdentity()
 
     def initializeGL(self):
         GL.glClearColor(1.0, 1.0, 1.0, 1.0)
         self.setUpShaders()
-        pass
 
     def paintGL(self):
         self.loadScene()
         try:
             with self.mutex:
-                # self.setUpShaders()
+                self.updateMatrices()
                 self.drawStuff()
         except Exception as exp:
             print(exp)
@@ -101,10 +98,28 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         self.shaders.link()
         self.shaders.bind()
 
+        self.updateMatrices()
+
+    def updateMatrices(self):
+        proj = QMatrix4x4()
+        proj.frustum(-1, 1, -1, 1, 2, 20)
+        modelview = QMatrix4x4()
+        modelview.lookAt(
+            QVector3D(0, 0, 3),
+            QVector3D(0, 0, 0),
+            QVector3D(0, 1, 0)
+        )
+        modelview.rotate(self.angleX, 1, 0, 0)
+        modelview.rotate(self.angleY, 0, 1, 0)
+
+        self.shaders.setUniformValue("ModelViewMatrix", modelview)
+        self.shaders.setUniformValue("MVP", proj * modelview)
+
     def putStar(self, color, point, radius, angle):
         self.star_coords.extend(star_coords(np.array(point), radius, angle))
 
     def drawStars(self):
+        self.shaders.setUniformValue("FlagColor", QVector3D(*self.star_color))
         GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
         GL.glEnableClientState(GL.GL_COLOR_ARRAY)
         GL.glVertexPointer(2, GL.GL_FLOAT, 0, self.star_coords)
@@ -115,6 +130,7 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         GL.glDisableClientState(GL.GL_COLOR_ARRAY)
 
     def drawFlag(self, flag_coords):
+        self.shaders.setUniformValue("FlagColor", QVector3D(*self.flag_color))
         GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
         GL.glEnableClientState(GL.GL_COLOR_ARRAY)
         GL.glVertexPointer(2, GL.GL_FLOAT, 0, flag_coords)
