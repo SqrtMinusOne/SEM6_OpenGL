@@ -1,11 +1,19 @@
+import threading
+
 import numpy as np
 from PyQt5.QtCore import Qt
 
 from PyQt5.QtWidgets import QMainWindow, QApplication
-from OpenGL import GL, GLU, GLUT
+from OpenGL import GL, GLU
 
 from ui.shaders import Ui_ShadersWindow
-from main import cart2pol, pol2cart, random_rgb
+from main import pol2cart
+
+
+def load_shader(shader_type, filename):
+    with open(filename, 'r') as file:
+        content = file.read()
+        return create_shader(shader_type, content)
 
 
 def create_shader(shader_type, source):
@@ -22,7 +30,16 @@ def star_coords(point, rad, angle=0):
     coef = 0.382
     for a in range(5):
         delta = np.array(pol2cart(rad, a * np.pi * 2 / 5 + angle))
-        delta2 = np.array(pol2cart(rad * coef, a * np.pi * 2 / 5 + angle - np.pi))
+        delta2 = np.array(
+            pol2cart(
+                rad *
+                coef,
+                a *
+                np.pi *
+                2 /
+                5 +
+                angle -
+                np.pi))
         pts1.append(point - delta)
         pts2.append(point - delta2)
     res = [point]
@@ -46,6 +63,7 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         self.keyPressEvent = self.onKeyPressed
         self.angleX = 0
         self.angleY = 0
+        self.mutex = threading.Lock()
 
     def loadScene(self):
         width, height = self.openGLWidget.width(), self.openGLWidget.height()
@@ -62,26 +80,16 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
     def paintGL(self):
         self.loadScene()
         try:
-            # self.setUpShaders()
-            self.drawStuff()
+            with self.mutex:
+                self.setUpShaders()
+                self.drawStuff()
         except Exception as exp:
             print(exp)
             pass
 
     def setUpShaders(self):
-        vertex = create_shader(GL.GL_VERTEX_SHADER, """
-            varying vec4 vertex_color;
-            void main(){
-                gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
-                vertex_color = gl_Color;
-            }
-        """)
-        fragment = create_shader(GL.GL_FRAGMENT_SHADER, """
-            varying vec4 vertex_color;
-            void main() {
-                gl_FragColor = vertex_color;
-            }
-        """)
+        vertex = load_shader(GL.GL_VERTEX_SHADER, 'shader.vert')
+        fragment = load_shader(GL.GL_FRAGMENT_SHADER, 'shader.frag')
         program = GL.glCreateProgram()
         GL.glAttachShader(program, vertex)
         GL.glAttachShader(program, fragment)
@@ -90,13 +98,13 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
 
     def putStar(self, color, point, radius, angle):
         self.star_coords.extend(star_coords(np.array(point), radius, angle))
-        # coords = star_coords(np.array(point), radius, angle)
 
     def drawStars(self):
         GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
         GL.glEnableClientState(GL.GL_COLOR_ARRAY)
         GL.glVertexPointer(2, GL.GL_FLOAT, 0, self.star_coords)
-        GL.glColorPointer(3, GL.GL_FLOAT, 0, [self.star_color] * len(self.star_coords))
+        GL.glColorPointer(3, GL.GL_FLOAT, 0, [
+                          self.star_color] * len(self.star_coords))
         [GL.glDrawArrays(GL.GL_POLYGON, i, 12) for i in range(0, 12 * 5, 12)]
         GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
         GL.glDisableClientState(GL.GL_COLOR_ARRAY)
@@ -121,7 +129,8 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
             ((0.8, 0.3), 1 / 15, 0),
             ((2 / 3, 0.1), 1 / 15, np.arcsin(4 / 5))
         )
-        star_params = [(np.array(coords), rad, angle) for coords, rad, angle in star_params]
+        star_params = [(np.array(coords), rad, angle)
+                       for coords, rad, angle in star_params]
         flag_coords = np.array((
             (0.05, 0.2),
             (0.95, 0.2),
@@ -153,6 +162,7 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         elif key == Qt.Key_S:
             self.angleX = (self.angleX - 5) % 360
         self.openGLWidget.update()
+
 
 if __name__ == "__main__":
     import sys
