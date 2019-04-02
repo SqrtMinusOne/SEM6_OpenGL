@@ -1,6 +1,6 @@
 import threading
 import numpy as np
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QMainWindow, QApplication
 from PyQt5.QtGui import QOpenGLShaderProgram, QOpenGLShader, QMatrix4x4, \
     QVector3D
@@ -8,19 +8,6 @@ from OpenGL import GL
 
 from ui.shaders import Ui_ShadersWindow
 from main import pol2cart
-
-
-def load_shader(shader_type, filename):
-    with open(filename, 'r') as file:
-        content = file.read()
-        return create_shader(shader_type, content)
-
-
-def create_shader(shader_type, source):
-    shader = GL.glCreateShader(shader_type)
-    GL.glShaderSource(shader, source)
-    GL.glCompileShader(shader)
-    return shader
 
 
 def star_coords(point, rad, angle=0):
@@ -31,15 +18,8 @@ def star_coords(point, rad, angle=0):
     for a in range(5):
         delta = np.array(pol2cart(rad, a * np.pi * 2 / 5 + angle))
         delta2 = np.array(
-            pol2cart(
-                rad *
-                coef,
-                a *
-                np.pi *
-                2 /
-                5 +
-                angle -
-                np.pi))
+            pol2cart(rad * coef,  a * np.pi * 2 / 5 + angle - np.pi)
+        )
         pts1.append(point - delta)
         pts2.append(point - delta2)
     res = [point]
@@ -56,19 +36,33 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         super().__init__(parent)
         self.star_color = (255 / 255, 223 / 255, 0 / 255)
         self.flag_color = (223 / 255, 37 / 255, 0 / 255)
+        self.time = 0.0
         self.star_coords = []
+        self.flag_coords = self.getFlagCoords()
+        self.star_params = self.getStarsParams()
         self.setupUi(self)
         self.openGLWidget.initializeGL = self.initializeGL
         self.openGLWidget.paintGL = self.paintGL
         self.keyPressEvent = self.onKeyPressed
-        self.angleX = 0
-        self.angleY = 0
+        self.initTimer()
+        self.angleX, self.angleY = 0, 0
         self.mutex = threading.Lock()
         self.shaders = QOpenGLShaderProgram()
+
+    def initTimer(self):
+        self.timer = QTimer()
+        self.timer.setInterval(50)
+        self.timer.timeout.connect(self.onTimeOut)
+        self.timer.start()
+
+    def onTimeOut(self):
+        self.time = self.time + 0.01 % 1
+        self.openGLWidget.update()
 
     def loadScene(self):
         width, height = self.openGLWidget.width(), self.openGLWidget.height()
         GL.glViewport(0, 0, width, height)
+        GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
         # Why the heck this does not work...
         # GL.glMatrixMode(GL.GL_PROJECTION)
         # GL.glLoadIdentity()
@@ -79,6 +73,7 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
     def initializeGL(self):
         GL.glClearColor(1.0, 1.0, 1.0, 1.0)
         self.setUpShaders()
+        self.initTimer()
 
     def paintGL(self):
         self.loadScene()
@@ -114,6 +109,14 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
 
         self.shaders.setUniformValue("ModelViewMatrix", modelview)
         self.shaders.setUniformValue("MVP", proj * modelview)
+        self.shaders.setUniformValue("Time", self.time)
+
+    def drawStuff(self):
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+        self.star_coords.clear()
+        [self.putStar(self.star_color, *param) for param in self.star_params]
+        self.drawFlag(self.flag_coords)
+        self.drawStars()
 
     def putStar(self, color, point, radius, angle):
         self.star_coords.extend(star_coords(np.array(point), radius, angle))
@@ -137,12 +140,22 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         color = []
         [color.extend(self.flag_color) for _ in range(len(flag_coords))]
         GL.glColorPointer(3, GL.GL_FLOAT, 0, color)
-        GL.glDrawArrays(GL.GL_POLYGON, 0, 4)
+        GL.glDrawArrays(GL.GL_POLYGON, 0, len(flag_coords))
         GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
         GL.glDisableClientState(GL.GL_COLOR_ARRAY)
 
-    def drawStuff(self):
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+    def getFlagCoords(self):
+        points = np.array([(0.05, 0.2), (0.95, 0.2), (0.95, 0.8), (0.05, 0.8)])
+        interpolated_1, interpolated_2 = [], []
+        for i in np.arange(0, 1, 0.01):
+            interpolated_1.append(points[0] * (1 - i) + points[1] * i)
+            interpolated_2.append(points[2] * (1 - i) + points[3] * i)
+        flag_coords = np.array([points[0], *interpolated_1, points[1],
+                                points[2], *interpolated_2, points[3]])
+        return flag_coords
+
+    def getStarsParams(self):
+        flag_coords = np.array([(0.05, 0.2), (0.95, 0.2), (0.95, 0.8), (0.05, 0.8)])
         star_params = (
             ((1 / 3, 1 / 2), 0.2, 0),
             ((2 / 3, 0.8), 1 / 15, np.arcsin(3 / 5) + np.pi / 2),
@@ -152,13 +165,8 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         )
         star_params = [(np.array(coords), rad, angle)
                        for coords, rad, angle in star_params]
-        flag_coords = np.array((
-            (0.05, 0.2),
-            (0.95, 0.2),
-            (0.95, 0.8),
-            (0.05, 0.8)
-        ))
-        stars_start = (flag_coords[3] - flag_coords[0]) / 2 + flag_coords[0]
+        stars_start = (flag_coords[3] - flag_coords[0]) / 2 \
+            + flag_coords[0]
         flag_size_x = (flag_coords[1][0] - flag_coords[0][0]) / 2
         flag_size_y = (flag_coords[3][1] - flag_coords[0][1]) / 2
         star_params = [
@@ -168,9 +176,7 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
              ), rad * flag_size_x, angle)
             for coords, rad, angle in star_params
         ]
-        [self.putStar(self.star_color, *param) for param in star_params]
-        self.drawFlag(flag_coords)
-        self.drawStars()
+        return star_params
 
     def onKeyPressed(self, event):
         key = event.key()
