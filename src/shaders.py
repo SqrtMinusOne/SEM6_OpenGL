@@ -3,7 +3,7 @@ import numpy as np
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QMainWindow, QApplication
 from PyQt5.QtGui import QOpenGLShaderProgram, QOpenGLShader, QMatrix4x4, \
-    QVector3D
+    QVector3D, QVector4D
 from OpenGL import GL
 
 from ui.shaders import Ui_ShadersWindow
@@ -30,17 +30,21 @@ def star_coords(point, rad, angle=0):
     # return [list(p) for p in [pts[0], pts[2], pts[4], pts[1], pts[3]]]
 
 
-# noinspection PyPep8Naming
 class MainWindow(QMainWindow, Ui_ShadersWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.star_color = (255 / 255, 223 / 255, 0 / 255)
-        self.flag_color = (223 / 255, 37 / 255, 0 / 255)
+        self.star_color = (255 / 255, 223 / 255, 0 / 255, 0.8)
+        self.flag_color = (223 / 255, 37 / 255, 0 / 255, 0.8)
+        self.start_flag_coords = np.array([(0.05, 0.2),
+                                           (0.95, 0.2),
+                                           (0.95, 0.8),
+                                           (0.05, 0.8)])
         self.time = 0.0
         self.star_coords = []
         self.flag_coords = self.getFlagCoords()
         self.star_params = self.getStarsParams()
         self.setupUi(self)
+        self.getLightPos()
         self.openGLWidget.initializeGL = self.initializeGL
         self.openGLWidget.paintGL = self.paintGL
         self.keyPressEvent = self.onKeyPressed
@@ -48,6 +52,13 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         self.angleX, self.angleY = 0, 0
         self.mutex = threading.Lock()
         self.shaders = QOpenGLShaderProgram()
+
+    def getLightPos(self):
+        self.light_pos = QVector3D(
+            self.xSpinBox.value(),
+            self.ySpinBox.value(),
+            self.zSpinBox.value()
+        )
 
     def initTimer(self):
         self.timer = QTimer()
@@ -63,6 +74,9 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         width, height = self.openGLWidget.width(), self.openGLWidget.height()
         GL.glViewport(0, 0, width, height)
         GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
+        GL.glEnable(GL.GL_BLEND)
+        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+        self.getLightPos()
         # Why the heck this does not work...
         # GL.glMatrixMode(GL.GL_PROJECTION)
         # GL.glLoadIdentity()
@@ -71,19 +85,15 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         # GL.glLoadIdentity()
 
     def initializeGL(self):
-        GL.glClearColor(1.0, 1.0, 1.0, 1.0)
+        GL.glClearColor(0.1, 0.1, 0.1, 1.0)
         self.setUpShaders()
         self.initTimer()
 
     def paintGL(self):
         self.loadScene()
-        try:
-            with self.mutex:
-                self.updateMatrices()
-                self.drawStuff()
-        except Exception as exp:
-            print(exp)
-            pass
+        with self.mutex:
+            self.updateMatrices()
+            self.drawStuff()
 
     def setUpShaders(self):
         self.shaders.addShaderFromSourceFile(QOpenGLShader.Vertex,
@@ -97,7 +107,7 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
 
     def updateMatrices(self):
         proj = QMatrix4x4()
-        proj.frustum(-1, 1, -1, 1, 2, 20)
+        proj.frustum(-0.3, 1, -0.3, 1, 2, 20)
         modelview = QMatrix4x4()
         modelview.lookAt(
             QVector3D(0, 0, 3),
@@ -110,6 +120,7 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         self.shaders.setUniformValue("ModelViewMatrix", modelview)
         self.shaders.setUniformValue("MVP", proj * modelview)
         self.shaders.setUniformValue("Time", self.time)
+        self.shaders.setUniformValue("LightPos", self.light_pos)
 
     def drawStuff(self):
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
@@ -122,7 +133,7 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         self.star_coords.extend(star_coords(np.array(point), radius, angle))
 
     def drawStars(self):
-        self.shaders.setUniformValue("FlagColor", QVector3D(*self.star_color))
+        self.shaders.setUniformValue("FlagColor", QVector4D(*self.star_color))
         GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
         GL.glEnableClientState(GL.GL_COLOR_ARRAY)
         GL.glVertexPointer(2, GL.GL_FLOAT, 0, self.star_coords)
@@ -133,29 +144,33 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         GL.glDisableClientState(GL.GL_COLOR_ARRAY)
 
     def drawFlag(self, flag_coords):
-        self.shaders.setUniformValue("FlagColor", QVector3D(*self.flag_color))
+        self.shaders.setUniformValue("FlagColor", QVector4D(*self.flag_color))
         GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
         GL.glEnableClientState(GL.GL_COLOR_ARRAY)
         GL.glVertexPointer(2, GL.GL_FLOAT, 0, flag_coords)
         color = []
         [color.extend(self.flag_color) for _ in range(len(flag_coords))]
         GL.glColorPointer(3, GL.GL_FLOAT, 0, color)
-        GL.glDrawArrays(GL.GL_POLYGON, 0, len(flag_coords))
+        for i in range(0, len(flag_coords), 4):
+            GL.glDrawArrays(GL.GL_POLYGON, i, 4)
         GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
         GL.glDisableClientState(GL.GL_COLOR_ARRAY)
 
     def getFlagCoords(self):
-        points = np.array([(0.05, 0.2), (0.95, 0.2), (0.95, 0.8), (0.05, 0.8)])
-        interpolated_1, interpolated_2 = [], []
-        for i in np.arange(0, 1, 0.01):
-            interpolated_1.append(points[0] * (1 - i) + points[1] * i)
-            interpolated_2.append(points[2] * (1 - i) + points[3] * i)
-        flag_coords = np.array([points[0], *interpolated_1, points[1],
-                                points[2], *interpolated_2, points[3]])
-        return flag_coords
+        points = self.start_flag_coords
+        precision = 0.01
+        i_range = np.arange(0, 1, precision)
+        res = []
+        for i, i1 in zip(i_range, i_range[1:]):
+            p1 = points[0] * (1 - i) + points[1] * i
+            p2 = points[0] * (1 - i1) + points[1] * i1
+            p3 = points[3] * (1 - i1) + points[2] * i1
+            p4 = points[3] * (1 - i) + points[2] * i
+            res.extend([p1, p2, p3, p4])
+        return np.array(res)
 
     def getStarsParams(self):
-        flag_coords = np.array([(0.05, 0.2), (0.95, 0.2), (0.95, 0.8), (0.05, 0.8)])
+        flag_coords = self.start_flag_coords
         star_params = (
             ((1 / 3, 1 / 2), 0.2, 0),
             ((2 / 3, 0.8), 1 / 15, np.arcsin(3 / 5) + np.pi / 2),
