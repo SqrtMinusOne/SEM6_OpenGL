@@ -5,7 +5,7 @@
 
 precision mediump float;
 
-uniform vec4 FlagColor;
+uniform vec4 Color;
 uniform vec3 LightPos;
 
 in vec4 vertexColor;
@@ -25,7 +25,7 @@ void main() {
     float diff = max(dot(norm, lightDir), 0.0);
     vec4 diffuse = diff * lightColor;
 
-    vec4 result = (diffuse + ambient) * FlagColor;
+    vec4 result = (diffuse + ambient) * Color;
 
     fragColor = result;
 }

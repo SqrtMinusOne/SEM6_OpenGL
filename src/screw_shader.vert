@@ -8,7 +8,7 @@ uniform mat4 ScaleMatrix;
 
 out vec3 Normal;
 out vec3 Position;
-
+out vec4 Color;
 
 void main(){
     float k = 0.1;
@@ -25,7 +25,7 @@ void main(){
     }
     norm.y = 0.;
     Normal = norm;
-    
+
     gl_Position = MVP * ScaleMatrix * pos;
 
 }

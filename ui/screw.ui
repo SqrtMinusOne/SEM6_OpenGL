@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>999</width>
+    <width>1003</width>
     <height>562</height>
    </rect>
   </property>
@@ -83,7 +83,7 @@
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_11">
               <item>
-               <widget class="QSlider" name="splitSlider">
+               <widget class="QSlider" name="precisionSlider">
                 <property name="minimum">
                  <number>10</number>
                 </property>
@@ -540,7 +540,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>999</width>
+     <width>1003</width>
      <height>22</height>
     </rect>
    </property>
@@ -610,7 +610,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>splitSlider</sender>
+   <sender>precisionSlider</sender>
    <signal>sliderMoved(int)</signal>
    <receiver>openGLWidget</receiver>
    <slot>update()</slot>
@@ -674,7 +674,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>splitSlider</sender>
+   <sender>precisionSlider</sender>
    <signal>sliderMoved(int)</signal>
    <receiver>label_13</receiver>
    <slot>setNum(int)</slot>

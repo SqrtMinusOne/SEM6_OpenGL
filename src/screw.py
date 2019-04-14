@@ -33,25 +33,19 @@ def star_coords(point, rad, angle=0):
 class MainWindow(QMainWindow, Ui_ShadersWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.star_color = (255 / 255, 223 / 255, 0 / 255, 0.8)
-        self.flag_color = (223 / 255, 37 / 255, 0 / 255, 0.8)
-        self.start_flag_coords = np.array([(0.05, 0.2),
-                                           (0.95, 0.2),
-                                           (0.95, 0.8),
-                                           (0.05, 0.8)])
-        self.time = 0.0
-        self.star_coords = []
-        self.flag_coords = self.getFlagCoords()
-        self.star_params = self.getStarsParams()
+        self.screw_color = (223 / 255, 37 / 255, 0 / 255, 0.8)
         self.setupUi(self)
         self.getLightPos()
-        self.mapButtons()
+        self.mapControls()
         self.openGLWidget.initializeGL = self.initializeGL
         self.openGLWidget.paintGL = self.paintGL
         self.keyPressEvent = self.onKeyPressed
         self.objectAngleX, self.objectAngleY = 0, 0
         self.camera_pos = QVector3D(0, 0, 3)
         self.scale_vec = QVector3D(1, 1, 1)
+        self.precision = 20
+        self.borders = True
+
         self.mutex = threading.Lock()
         self.shaders = QOpenGLShaderProgram()
 
@@ -121,74 +115,51 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
 
     def drawStuff(self):
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
-        self.star_coords.clear()
-        [self.putStar(self.star_color, *param) for param in self.star_params]
-        self.drawFlag(self.flag_coords)
-        self.drawStars()
+        # self.star_coords.clear()
+        # [self.putStar(self.star_color, *param) for param in self.star_params]
+        # self.drawFlag(self.flag_coords)
+        # self.drawStars()
+        self.drawObject()
 
-    def putStar(self, color, point, radius, angle):
-        self.star_coords.extend(star_coords(np.array(point), radius, angle))
-
-    def drawStars(self):
-        self.shaders.setUniformValue("FlagColor", QVector4D(*self.star_color))
-        GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
-        GL.glEnableClientState(GL.GL_COLOR_ARRAY)
-        GL.glVertexPointer(2, GL.GL_FLOAT, 0, self.star_coords)
-        GL.glColorPointer(3, GL.GL_FLOAT, 0, [
-                          self.star_color] * len(self.star_coords))
-        [GL.glDrawArrays(GL.GL_POLYGON, i, 12) for i in range(0, 12 * 5, 12)]
-        GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
-        GL.glDisableClientState(GL.GL_COLOR_ARRAY)
-
-    def drawFlag(self, flag_coords):
-        self.shaders.setUniformValue("FlagColor", QVector4D(*self.flag_color))
-        GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
-        GL.glEnableClientState(GL.GL_COLOR_ARRAY)
-        GL.glVertexPointer(2, GL.GL_FLOAT, 0, flag_coords)
-        color = []
-        [color.extend(self.flag_color) for _ in range(len(flag_coords))]
-        GL.glColorPointer(3, GL.GL_FLOAT, 0, color)
-        for i in range(0, len(flag_coords), 4):
-            GL.glDrawArrays(GL.GL_POLYGON, i, 4)
-        GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
-        GL.glDisableClientState(GL.GL_COLOR_ARRAY)
-
-    def getFlagCoords(self):
-        points = self.start_flag_coords
-        precision = 0.01
-        i_range = np.arange(0, 1, precision)
-        res = []
-        for i, i1 in zip(i_range, i_range[1:]):
-            p1 = points[0] * (1 - i) + points[1] * i
-            p2 = points[0] * (1 - i1) + points[1] * i1
-            p3 = points[3] * (1 - i1) + points[2] * i1
-            p4 = points[3] * (1 - i) + points[2] * i
-            res.extend([p1, p2, p3, p4])
-        return np.array(res)
-
-    def getStarsParams(self):
-        flag_coords = self.start_flag_coords
-        star_params = (
-            ((1 / 3, 1 / 2), 0.2, 0),
-            ((2 / 3, 0.8), 1 / 15, np.arcsin(3 / 5) + np.pi / 2),
-            ((0.8, 0.6), 1 / 15, np.arcsin(1 / 6) + np.pi / 2),
-            ((0.8, 0.3), 1 / 15, 0),
-            ((2 / 3, 0.1), 1 / 15, np.arcsin(4 / 5))
-        )
-        star_params = [(np.array(coords), rad, angle)
-                       for coords, rad, angle in star_params]
-        stars_start = (flag_coords[3] - flag_coords[0]) / 2 \
-            + flag_coords[0]
-        flag_size_x = (flag_coords[1][0] - flag_coords[0][0]) / 2
-        flag_size_y = (flag_coords[3][1] - flag_coords[0][1]) / 2
-        star_params = [
-            ((
-                 coords[0] * flag_size_x + stars_start[0],
-                 coords[1] * flag_size_y + stars_start[1]
-             ), rad * flag_size_x, angle)
-            for coords, rad, angle in star_params
+    def getObjectCoords(self, precision=20):
+        polygons = [
+            ((0, 0, 0), (0, 1, 0), (1, 1, 0), (1, 0, 0)),
+            ((0, 0, 1), (0, 1, 1), (1, 1, 1), (1, 0, 1)),
+            ((0, 0, 0), (0, 0, 1), (1, 0, 1), (1, 0, 0)),
+            ((0, 1, 0), (0, 1, 1), (1, 1, 1), (1, 1, 0)),
+            ((0, 0, 0), (0, 0, 1), (0, 1, 1), (0, 1, 0)),
+            ((1, 0, 0), (1, 0, 1), (1, 1, 1), (1, 1, 0))
         ]
-        return star_params
+        center = (0.5, 0.5, 0.5)
+        return polygons, center
+
+    def drawObject(self):
+        coords, center = self.getObjectCoords(self.precision)
+        self.shaders.setUniformValue("Color", QVector4D(*self.screw_color))
+        self.shaders.setUniformValue("Center", QVector3D(*center))
+
+        GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
+        GL.glEnableClientState(GL.GL_COLOR_ARRAY)
+
+        coords_array = []
+        [[coords_array.append(p) for p in polygon] for polygon in coords]
+        len_array = [len(polygon) for polygon in coords]
+        GL.glVertexPointer(3, GL.GL_FLOAT, 0, coords_array)
+        GL.glColorPointer(4, GL.GL_FLOAT, 0,
+                          [self.screw_color] * len(coords_array))
+        for i in range(len(coords)):
+            start_index = sum(len_array[:i])
+            GL.glDrawArrays(GL.GL_POLYGON, start_index, len_array[i])
+
+        if self.borders:
+            GL.glColorPointer(3, GL.GL_FLOAT, 0, (1, 1, 1) * len(coords_array))
+            self.shaders.setUniformValue("Color", QVector4D(1, 1, 1, 1))
+            for i in range(len(coords)):
+                start_index = sum(len_array[:i])
+                GL.glDrawArrays(GL.GL_LINE_LOOP, start_index, len_array[i])
+        GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
+        GL.glDisableClientState(GL.GL_COLOR_ARRAY)
+
 
     def onKeyPressed(self, event):
         key = event.key()
@@ -214,7 +185,7 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
             self.rotateObject(0, 1)
         self.openGLWidget.update()
 
-    def mapButtons(self):
+    def mapControls(self):
         self.moveCameraUp.clicked.connect(lambda: self.moveCamera(y=1))
         self.moveCameraDown.clicked.connect(lambda: self.moveCamera(y=-1))
         self.moveCameraLeft.clicked.connect(lambda: self.moveCamera(x=-1))
@@ -230,6 +201,9 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         self.xScaleSpinBox.valueChanged.connect(lambda x: self.scaleView(x=x))
         self.yScaleSpinBox.valueChanged.connect(lambda y: self.scaleView(y=y))
         self.zScaleSpinBox.valueChanged.connect(lambda z: self.scaleView(z=z))
+
+        self.precisionSlider.valueChanged.connect(lambda p: setattr(self, 'precision', p))
+
 
     def rotateObject(self, x, y):
         angle_move = 5
