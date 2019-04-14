@@ -21,10 +21,14 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         self.openGLWidget.paintGL = self.paintGL
         self.keyPressEvent = self.onKeyPressed
         self.objectAngleX, self.objectAngleY = 0, 0
-        self.camera_pos = QVector3D(0, 0, 3)
+        self.camera_pos = QVector3D(0, 0, 4)
         self.scale_vec = QVector3D(1, 1, 1)
+        self.ambient = 0.2
+        self.diffuse = 0.8
+
         self.precision = 20
-        self.borders = True
+        self.draw_lines = True
+        self.invisible = True
 
         self.mutex = threading.Lock()
         self.shaders = QOpenGLShaderProgram()
@@ -42,6 +46,11 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
         GL.glEnable(GL.GL_BLEND)
         GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+        if self.invisible:
+            GL.glEnable(GL.GL_DEPTH_TEST)
+            GL.glDepthFunc(GL.GL_LEQUAL)
+        else:
+            GL.glDisable(GL.GL_DEPTH_TEST)
         self.getLightPos()
 
     def initializeGL(self):
@@ -93,7 +102,34 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         # [self.putStar(self.star_color, *param) for param in self.star_params]
         # self.drawFlag(self.flag_coords)
         # self.drawStars()
+        self.drawCoordSystem()
         self.drawObject()
+        self.drawLightSource()
+
+    def getCubeCoords(self):
+        polygons = np.array([
+            ((0, 0, 0), (0, 1, 0), (1, 1, 0), (1, 0, 0)),
+            ((0, 0, 1), (0, 1, 1), (1, 1, 1), (1, 0, 1)),
+            ((0, 0, 0), (0, 0, 1), (1, 0, 1), (1, 0, 0)),
+            ((0, 1, 0), (0, 1, 1), (1, 1, 1), (1, 1, 0)),
+            ((0, 0, 0), (0, 0, 1), (0, 1, 1), (0, 1, 0)),
+            ((1, 0, 0), (1, 0, 1), (1, 1, 1), (1, 1, 0))
+        ])
+        normals = [
+            (0, 0, -1),
+            (0, 0, 1),
+            (0, -1, 0),
+            (0, 1, 0),
+            (-1, 0, 0),
+            (1, 0, 0)
+        ]
+        new_normals = []
+
+        [[new_normals.append(QVector3D(*normals[i])) for _ in range(len(polygons[i]))]
+         for i in range(len(polygons))]
+        center = np.array((self.light_pos.x(), self.light_pos.y(), self.light_pos.z()))
+        polygons = [[p * 0.1 + center for p in side] for side in polygons]
+        return polygons, new_normals, center
 
     def getObjectCoords(self, precision=20):
         polygons = [
@@ -130,6 +166,9 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         self.shaders.enableAttributeArray("v_normal")
 
         self.shaders.setUniformValue("Center", QVector3D(*center))
+        self.shaders.setUniformValue("ambientStrength", self.ambient)
+        self.shaders.setUniformValue("diffuseStrength", self.diffuse)
+        self.shaders.setUniformValue("phongModel", True)
 
         GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
 
@@ -141,12 +180,56 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
             start_index = sum(len_array[:i])
             GL.glDrawArrays(GL.GL_POLYGON, start_index, len_array[i])
 
-        if self.borders:
+        if self.draw_lines:
             self.shaders.setAttributeArray("v_color", line_colors)
             for i in range(len(coords)):
                 start_index = sum(len_array[:i])
                 GL.glDrawArrays(GL.GL_LINE_LOOP, start_index, len_array[i])
         GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
+
+    def drawLightSource(self):
+        coords, normals, center = self.getCubeCoords()
+        source_colors = []
+        [source_colors.append(QVector4D(1, 153 / 255, 0, 1) * self.diffuse) for _ in range(len(normals))]
+
+        self.shaders.setAttributeArray("v_color", source_colors)
+        self.shaders.enableAttributeArray("v_color")
+
+        self.shaders.setUniformValue("phongModel", False)
+
+        GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
+
+        coords_array = []
+        [[coords_array.append(list(p)) for p in polygon] for polygon in coords]
+        len_array = [len(polygon) for polygon in coords]
+        GL.glVertexPointer(3, GL.GL_FLOAT, 0, coords_array)
+        for i in range(len(coords)):
+            start_index = sum(len_array[:i])
+            GL.glDrawArrays(GL.GL_POLYGON, start_index, len_array[i])
+
+        GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
+
+    def drawCoordSystem(self):
+        coords = (
+            ((0, 0, -100), (0, 0, 100)),
+            ((-100, 0, 0), (100, 0, 0)),
+            ((0, -100, 0), (0, 100, 0))
+        )
+        coords_array = []
+        line_colors = []
+        [line_colors.append(QVector4D(1, 1, 1, 1)) for _ in range(len(coords) * 2)]
+        [[coords_array.append(p) for p in line] for line in coords]
+
+        GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
+        self.shaders.setAttributeArray("v_color", line_colors)
+        self.shaders.setUniformValue("phongModel", False)
+        GL.glVertexPointer(3, GL.GL_FLOAT, 0, coords_array)
+        for i in range(len(coords)):
+            start_index = i * 2
+            GL.glDrawArrays(GL.GL_LINES, start_index, 2)
+
+        GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
+
 
 
     def onKeyPressed(self, event):
@@ -191,6 +274,15 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         self.zScaleSpinBox.valueChanged.connect(lambda z: self.scaleView(z=z))
 
         self.precisionSlider.valueChanged.connect(lambda p: setattr(self, 'precision', p))
+        self.ambientSlider.valueChanged.connect(lambda v: setattr(self, 'ambient', v / 100))
+        self.diffuseSlider.valueChanged.connect(lambda v: setattr(self, 'diffuse', v / 100))
+        self.alphaSlider.valueChanged.connect(lambda a: setattr(self,
+            'screw_color',
+            (self.screw_color[0], self.screw_color[1], self.screw_color[2],
+             a / 100)))
+
+        self.drawLinesCheckBox.stateChanged.connect(lambda s: setattr(self, 'draw_lines', s))
+        self.invisibleCheckBox.stateChanged.connect(lambda s: setattr(self, 'invisible', s))
 
 
     def rotateObject(self, x, y):

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1003</width>
-    <height>562</height>
+    <height>590</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -159,6 +159,38 @@
                  </property>
                  <property name="text">
                   <string>↓</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="0">
+                <widget class="QPushButton" name="rotateObjectForward">
+                 <property name="minimumSize">
+                  <size>
+                   <width>1</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>⇑</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="2">
+                <widget class="QPushButton" name="rotateObjectBackward">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>3</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>1</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>⇓</string>
                  </property>
                 </widget>
                </item>
@@ -403,7 +435,10 @@
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_7">
               <item>
-               <widget class="QSlider" name="horizontalSlider">
+               <widget class="QSlider" name="diffuseSlider">
+                <property name="maximum">
+                 <number>100</number>
+                </property>
                 <property name="value">
                  <number>80</number>
                 </property>
@@ -516,17 +551,71 @@
           </widget>
          </item>
          <item>
-          <spacer name="verticalSpacer">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
+          <widget class="QGroupBox" name="groupBox_7">
+           <property name="title">
+            <string>Параметры объекта</string>
            </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>40</height>
-            </size>
-           </property>
-          </spacer>
+           <layout class="QVBoxLayout" name="verticalLayout">
+            <item>
+             <widget class="QCheckBox" name="drawLinesCheckBox">
+              <property name="text">
+               <string>Рисовать линии</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="invisibleCheckBox">
+              <property name="text">
+               <string>Скрытие невидимых граней</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_2">
+              <property name="text">
+               <string>Прозрачность</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_3">
+              <item>
+               <widget class="QSlider" name="alphaSlider">
+                <property name="maximum">
+                 <number>100</number>
+                </property>
+                <property name="value">
+                 <number>80</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_17">
+                <property name="text">
+                 <string>80</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_18">
+                <property name="text">
+                 <string>%</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </widget>
          </item>
         </layout>
        </item>
@@ -617,7 +706,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>579</x>
-     <y>224</y>
+     <y>247</y>
     </hint>
     <hint type="destinationlabel">
      <x>491</x>
@@ -626,7 +715,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>horizontalSlider</sender>
+   <sender>diffuseSlider</sender>
    <signal>valueChanged(int)</signal>
    <receiver>label_10</receiver>
    <slot>setNum(int)</slot>
@@ -665,7 +754,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>624</x>
-     <y>486</y>
+     <y>514</y>
     </hint>
     <hint type="destinationlabel">
      <x>508</x>
@@ -681,11 +770,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>673</x>
-     <y>224</y>
+     <y>247</y>
     </hint>
     <hint type="destinationlabel">
      <x>695</x>
-     <y>222</y>
+     <y>241</y>
     </hint>
    </hints>
   </connection>
@@ -697,7 +786,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>630</x>
-     <y>417</y>
+     <y>445</y>
     </hint>
     <hint type="destinationlabel">
      <x>295</x>
@@ -706,7 +795,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>horizontalSlider</sender>
+   <sender>diffuseSlider</sender>
    <signal>valueChanged(int)</signal>
    <receiver>openGLWidget</receiver>
    <slot>update()</slot>
@@ -729,7 +818,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>676</x>
-     <y>447</y>
+     <y>475</y>
     </hint>
     <hint type="destinationlabel">
      <x>372</x>
@@ -745,7 +834,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>568</x>
-     <y>442</y>
+     <y>470</y>
     </hint>
     <hint type="destinationlabel">
      <x>508</x>
@@ -777,7 +866,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>561</x>
-     <y>412</y>
+     <y>440</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -793,7 +882,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>656</x>
-     <y>425</y>
+     <y>453</y>
     </hint>
     <hint type="destinationlabel">
      <x>424</x>
@@ -808,8 +897,8 @@
    <slot>update()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>765</x>
-     <y>366</y>
+     <x>808</x>
+     <y>383</y>
     </hint>
     <hint type="destinationlabel">
      <x>374</x>
@@ -846,6 +935,118 @@
     <hint type="destinationlabel">
      <x>266</x>
      <y>466</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>drawLinesCheckBox</sender>
+   <signal>stateChanged(int)</signal>
+   <receiver>openGLWidget</receiver>
+   <slot>update()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>814</x>
+     <y>455</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>258</x>
+     <y>280</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>alphaSlider</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>label_17</receiver>
+   <slot>setNum(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>842</x>
+     <y>526</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>947</x>
+     <y>527</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>alphaSlider</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>openGLWidget</receiver>
+   <slot>update()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>764</x>
+     <y>523</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>348</x>
+     <y>445</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>xLightSpinBox</sender>
+   <signal>valueChanged(double)</signal>
+   <receiver>openGLWidget</receiver>
+   <slot>update()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>760</x>
+     <y>171</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>387</x>
+     <y>198</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>yLightSpinBox</sender>
+   <signal>valueChanged(double)</signal>
+   <receiver>openGLWidget</receiver>
+   <slot>update()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>835</x>
+     <y>170</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>430</x>
+     <y>186</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>zLightSpinBox</sender>
+   <signal>valueChanged(double)</signal>
+   <receiver>openGLWidget</receiver>
+   <slot>update()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>905</x>
+     <y>169</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>354</x>
+     <y>233</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>invisibleCheckBox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>openGLWidget</receiver>
+   <slot>update()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>924</x>
+     <y>476</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>289</x>
+     <y>407</y>
     </hint>
    </hints>
   </connection>

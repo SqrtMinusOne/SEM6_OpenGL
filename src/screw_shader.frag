@@ -6,6 +6,9 @@
 precision mediump float;
 
 uniform vec3 LightPos;
+uniform float ambientStrength;
+uniform float diffuseStrength;
+uniform bool phongModel;
 
 in vec4 Color;
 in vec3 Normal;
@@ -14,18 +17,23 @@ in vec3 Position;
 out vec4 fragColor;
 
 void main() {
-    float ambientStrength = 0.2f;
     vec4 lightColor = vec4(1.0, 1.0, 1.0, 1.0);
     
-    vec4 ambient = ambientStrength * lightColor;
-    
-    vec3 norm = normalize(Normal);
-    vec3 lightDir = normalize(LightPos);
-    float diff = max(dot(norm, lightDir), 0.0);
-    vec4 diffuse = diff * lightColor;
+    if (phongModel){
+        vec4 ambient = ambientStrength * lightColor;
+        
+        vec3 norm = normalize(Normal);
+        vec3 lightDir = normalize(LightPos);
+        float diff = max(dot(norm, lightDir), 0.0);
+        vec4 diffuse = diff * diffuseStrength * lightColor;
 
-    vec4 result = (ambient + diffuse) * Color;
+        vec4 result = (ambient + diffuse) * Color;
+        result.a = Color.a;
 
-    fragColor = result;
+        fragColor = result;
+    }
+    else {
+        fragColor = Color;
+    }
 }
 
