@@ -10,26 +10,6 @@ from ui.screw import Ui_ShadersWindow
 from main import pol2cart
 
 
-def star_coords(point, rad, angle=0):
-    pts1 = []
-    pts2 = []
-    angle -= np.pi / 2
-    coef = 0.382
-    for a in range(5):
-        delta = np.array(pol2cart(rad, a * np.pi * 2 / 5 + angle))
-        delta2 = np.array(
-            pol2cart(rad * coef,  a * np.pi * 2 / 5 + angle - np.pi)
-        )
-        pts1.append(point - delta)
-        pts2.append(point - delta2)
-    res = [point]
-    for i1, i2 in zip(range(5), [3, 4, 0, 1, 2]):
-        res.extend([pts1[i1], pts2[i2]])
-    res.append(pts1[0])
-    return [list(p) for p in res]
-    # return [list(p) for p in [pts[0], pts[2], pts[4], pts[1], pts[3]]]
-
-
 class MainWindow(QMainWindow, Ui_ShadersWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -63,12 +43,6 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         GL.glEnable(GL.GL_BLEND)
         GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
         self.getLightPos()
-        # Why the heck this does not work...
-        # GL.glMatrixMode(GL.GL_PROJECTION)
-        # GL.glLoadIdentity()
-        # GL.glFrustum(-1, 1, -1, 1, 1, 20)
-        # GL.glMatrixMode(GL.GL_MODELVIEW)
-        # GL.glLoadIdentity()
 
     def initializeGL(self):
         GL.glClearColor(0.1, 0.1, 0.1, 1.0)
@@ -130,35 +104,49 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
             ((0, 0, 0), (0, 0, 1), (0, 1, 1), (0, 1, 0)),
             ((1, 0, 0), (1, 0, 1), (1, 1, 1), (1, 1, 0))
         ]
+        normals = [
+            (0, 0, -1),
+            (0, 0, 1),
+            (0, -1, 0),
+            (0, 1, 0),
+            (-1, 0, 0),
+            (1, 0, 0)
+        ]
+        new_normals = []
+        [[new_normals.append(QVector3D(*normals[i])) for _ in range(len(polygons[i]))]
+         for i in range(len(polygons))]
         center = (0.5, 0.5, 0.5)
-        return polygons, center
+        return polygons, new_normals, center
 
     def drawObject(self):
-        coords, center = self.getObjectCoords(self.precision)
-        self.shaders.setUniformValue("Color", QVector4D(*self.screw_color))
+        coords, normals, center = self.getObjectCoords(self.precision)
+        screw_colors, line_colors = [], []
+        [screw_colors.append(QVector4D(*self.screw_color)) for _ in range(len(normals))]
+        [line_colors.append(QVector4D(1, 1, 1, 1)) for _ in range(len(normals))]
+
+        self.shaders.setAttributeArray("v_color", screw_colors)
+        self.shaders.enableAttributeArray("v_color")
+        self.shaders.setAttributeArray("v_normal", normals)
+        self.shaders.enableAttributeArray("v_normal")
+
         self.shaders.setUniformValue("Center", QVector3D(*center))
 
         GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
-        GL.glEnableClientState(GL.GL_COLOR_ARRAY)
 
         coords_array = []
         [[coords_array.append(p) for p in polygon] for polygon in coords]
         len_array = [len(polygon) for polygon in coords]
         GL.glVertexPointer(3, GL.GL_FLOAT, 0, coords_array)
-        GL.glColorPointer(4, GL.GL_FLOAT, 0,
-                          [self.screw_color] * len(coords_array))
         for i in range(len(coords)):
             start_index = sum(len_array[:i])
             GL.glDrawArrays(GL.GL_POLYGON, start_index, len_array[i])
 
         if self.borders:
-            GL.glColorPointer(3, GL.GL_FLOAT, 0, (1, 1, 1) * len(coords_array))
-            self.shaders.setUniformValue("Color", QVector4D(1, 1, 1, 1))
+            self.shaders.setAttributeArray("v_color", line_colors)
             for i in range(len(coords)):
                 start_index = sum(len_array[:i])
                 GL.glDrawArrays(GL.GL_LINE_LOOP, start_index, len_array[i])
         GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
-        GL.glDisableClientState(GL.GL_COLOR_ARRAY)
 
 
     def onKeyPressed(self, event):

@@ -2,6 +2,9 @@
 
 layout (location = 0) in vec3 VertexPosition;
 
+in vec4 v_color;
+in vec3 v_normal;
+
 uniform mat4 ModelViewMatrix;
 uniform mat4 MVP;
 uniform mat4 ScaleMatrix;
@@ -15,16 +18,9 @@ void main(){
     vec4 pos = vec4(VertexPosition, 1.); 
     Position = vec4(ModelViewMatrix * pos).xyz;
     
-    vec3 norm = vec3(0.0);
-    float angle = 0.; 
-    norm.x = 1. * cos(angle);
-    norm.z = 1. * sin(angle);
-    if (norm.z < 0.){
-        norm.x = norm.x * -1.;
-        norm.z = norm.z * -1.;
-    }
-    norm.y = 0.;
-    Normal = norm;
+    Color = v_color;
+    
+    Normal = v_normal;
 
     gl_Position = MVP * ScaleMatrix * pos;
 
