@@ -15,7 +15,7 @@ out vec4 Color;
 void main(){
     float k = 0.1;
     vec4 pos = vec4(VertexPosition, 1.); 
-    Position = vec4(ModelViewMatrix * pos).xyz;
+    Position = VertexPosition;
     
     Color = v_color;
     

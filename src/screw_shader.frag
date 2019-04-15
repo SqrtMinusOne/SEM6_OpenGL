@@ -23,7 +23,7 @@ void main() {
         vec4 ambient = ambientStrength * lightColor;
         
         vec3 norm = normalize(Normal);
-        vec3 lightDir = normalize(LightPos);
+        vec3 lightDir = normalize(LightPos - Position);
         float diff = max(dot(norm, lightDir), 0.0);
         vec4 diffuse = diff * diffuseStrength * lightColor;
 

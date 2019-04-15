@@ -194,6 +194,13 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         return point + self.object_center
 
     def map_normal(self, normal: QVector3D):
+        matr = QMatrix4x4()
+        matr.rotate(self.objectAngleX, QVector3D(1, 0, 0))
+        matr.rotate(self.objectAngleY, QVector3D(0, 1, 0))
+        matr.rotate(self.objectAngleZ, QVector3D(0, 0, 1))
+
+        normal = normal * matr
+
         return normal
 
     def getObjectCoords(self, precision=20):
