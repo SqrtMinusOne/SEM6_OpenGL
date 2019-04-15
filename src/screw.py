@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QMainWindow, QApplication
 from PyQt5.QtGui import QOpenGLShaderProgram, QOpenGLShader, QMatrix4x4, \
     QVector3D, QVector4D
 from OpenGL import GL
+from matplotlib import tri
 
 from ui.screw import Ui_ShadersWindow
 from main import pol2cart, cart2pol
@@ -154,52 +155,88 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
              for _ in range(4)]
         return polygons, normals
 
-    def getFlatCircleApprox(self, r1, r2, y, y_dir, precision,
-                            map_proc=None, map_norm=None):
+    def getFlatCircleApprox(self, r1, r2, y, y_dir, p1, p2,
+                                        map_proc=None, map_norm=None):
         map_proc = map_proc if map_proc is not None else lambda v: v
         map_norm = map_norm if map_norm is not None else map_proc
         polygons = []
         normals = []
-        for i1, i2 in zip(range(precision+1), range(1, precision+1)):
-            angle_1 = 2 * np.pi / precision * i1
-            angle_2 = 2 * np.pi / precision * i2
-            x1, z1 = pol2cart(r1, angle_1)
-            x2, z2 = pol2cart(r2, angle_1)
-            x3, z3 = pol2cart(r2, angle_2)
-            x4, z4 = pol2cart(r1, angle_2)
-            p1, p2, p3, p4 = [map_proc(QVector3D(x, y, z))
-                            for x, z in ((x1, z1), (x2, z2), (x3,z3), (x4,z4))]
-
-            polygons.append([(p.x(), p.y(), p.z()) for p in (p1, p2, p3, p4)])
-            normal = map_norm(QVector3D(0, y_dir, 0))
+        ang_space_1 = np.linspace(0, 2 * np.pi, p1+1)
+        ang_space_2 = np.linspace(0, 2 * np.pi, p2+1)
+        space = np.array([pol2cart(r1, a) for a in ang_space_1]
+                         + [pol2cart(r2, a) for a in ang_space_2])
+        x_s, z_s = space[:, 0], space[:, 1]
+        tr = tri.Triangulation(x_s, z_s)
+        x_tr, y_tr = x_s[tr.triangles].mean(axis=1), z_s[tr.triangles].mean(axis=1)
+        mask_func = lambda x, y: (
+            lambda pol = cart2pol(x,y):(
+                min(r1, r2) > pol[0]
+            )
+        )()
+        mask_array = [mask_func(*point) for point in zip(x_tr, y_tr)]
+        tr.set_mask(mask_array)
+        normal = map_norm(QVector3D(0, y_dir, 0))
+        for triangle in tr.get_masked_triangles():
+            polygon = [map_proc(QVector3D(
+                x_s[p], y, z_s[p]
+            )) for p in triangle]
+            polygons.append([(p.x(), p.y(), p.z()) for p in polygon])
             [normals.append((normal.x(), normal.y(), normal.z()))
-             for _ in range(4)]
+             for _ in range(len(polygon))]
         return polygons, normals
 
     def getObjectCoords(self, precision=20):
+        def get_carving(norm_r, carve_r, y_start, carve_h, num, precision):
+            vert, hor = [], []
+            for i in range(0, (num + 1)*2, 2):
+                vert.append(
+                    (norm_r, y_start + i * carve_h, carve_h, precision)
+                )
+            for i in range(1, num*2, 2):
+                vert.append(
+                    (carve_r, y_start + i * carve_h, carve_h, precision)
+                )
+            for i in range(1, (num+1)*2-1):
+                hor.append(
+                    (norm_r, carve_r, y_start + i * carve_h, -(i % 2) * 2 + 1,
+                     precision, precision)
+                )
+            return vert, hor
+
         center = QVector3D(0.5, 0.5, 0.5)
         map_proc = lambda vec: vec + center
         map_norm = lambda vec: vec
-        screw_vertical = [(1, 0, 1, 6),
-                          (0.5, 0, 1, 6)]
-        screw_flat = [(0.5, 1, 0, -1, 6),
-                      (0.5, 1, 1, 1, 6)]
-
+        vert, hor = [], []
+        vert, hor = get_carving(0.8, 0.7, 0, 0.05, 5, precision)
+        v, h = get_carving(0.6, 0.5, 0.05*11, 0.05, 5, precision)
+        vert += v
+        hor += h
+        vert += [
+            (1, 0, 0.05*12, 6),
+            (0.7, 0.05*12, 0.05*10, 6)
+        ]
+        hor += [
+            (1, 0.8, 0, -1, 6, precision),
+            (1, 0.7, 0.05*11, -1, 6, 6),
+            (1, 0.7, 0.05*12, 1, 6, 6),
+            (0.7, 0.5, 0.05*11, -1, 6, precision),
+            (0.7, 0.6, 0.05*(11+11), 1, 6, precision)
+        ]
         coords, normals = [], []
-        for obj in screw_vertical:
-            coords_, normals_ = self.getCircleApprox(*obj, map_proc, map_norm)
-            coords += coords_
-            normals += normals_
+        for vertical in vert:
+            c, n = self.getCircleApprox(*vertical, map_proc, map_norm)
+            coords += c
+            normals += n
 
-        for obj in screw_flat:
-            coords_, normals_ = self.getFlatCircleApprox(*obj, map_proc, map_norm)
-            coords += coords_
-            normals += normals_
+        for horizontal in hor:
+            c, n = self.getFlatCircleApprox(*horizontal, map_proc, map_norm)
+            coords += c
+            normals += n
 
-        return coords, normals, center
+        return coords, normals
 
     def drawObject(self):
-        coords, normals, center = self.getObjectCoords(self.precision)
+        coords, normals = self.getObjectCoords(self.precision)
         screw_colors, line_colors = [], []
         [screw_colors.append(QVector4D(*self.screw_color)) for _ in range(len(normals))]
         [line_colors.append(QVector4D(1, 1, 1, 1)) for _ in range(len(normals))]
@@ -209,7 +246,6 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         self.shaders.setAttributeArray("v_normal", normals)
         self.shaders.enableAttributeArray("v_normal")
 
-        self.shaders.setUniformValue("Center", center)
         self.shaders.setUniformValue("ambientStrength", self.ambient)
         self.shaders.setUniformValue("diffuseStrength", self.diffuse)
         self.shaders.setUniformValue("phongModel", True)
@@ -273,8 +309,6 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
             GL.glDrawArrays(GL.GL_LINES, start_index, 2)
 
         GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
-
-
 
     def onKeyPressed(self, event):
         key = event.key()
