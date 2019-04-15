@@ -7,7 +7,7 @@ from PyQt5.QtGui import QOpenGLShaderProgram, QOpenGLShader, QMatrix4x4, \
 from OpenGL import GL
 
 from ui.screw import Ui_ShadersWindow
-from main import pol2cart
+from main import pol2cart, cart2pol
 
 
 class MainWindow(QMainWindow, Ui_ShadersWindow):
@@ -131,28 +131,72 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         polygons = [[p * 0.1 + center for p in side] for side in polygons]
         return polygons, new_normals, center
 
+    def getCircleApprox(self, r, y, h, precision,
+                        map_proc=None, map_norm=None):
+        map_proc = map_proc if map_proc is not None else lambda v: v
+        map_norm = map_norm if map_norm is not None else map_proc
+        polygons = []
+        normals = []
+        for i1, i2 in zip(range(precision+1), range(1, precision+1)):
+            angle_1 = 2 * np.pi / precision * i1
+            angle_2 = 2 * np.pi / precision * i2
+            x1, z1 = pol2cart(r, angle_1)
+            x2, z2 = pol2cart(r, angle_2)
+            p1 = map_proc(QVector3D(x1, y, z1))
+            p2 = map_proc(QVector3D(x1, y + h, z1))
+            p3 = map_proc(QVector3D(x2, y + h, z2))
+            p4 = map_proc(QVector3D(x2, y, z2))
+            polygons.append([(p.x(), p.y(), p.z()) for p in (p1, p2, p3, p4)])
+
+            xn, zn = pol2cart(1, (angle_1 + angle_2) / 2)
+            normal = map_norm(QVector3D(xn, 0, zn))
+            [normals.append((normal.x(), normal.y(), normal.z()))
+             for _ in range(4)]
+        return polygons, normals
+
+    def getFlatCircleApprox(self, r1, r2, y, y_dir, precision,
+                            map_proc=None, map_norm=None):
+        map_proc = map_proc if map_proc is not None else lambda v: v
+        map_norm = map_norm if map_norm is not None else map_proc
+        polygons = []
+        normals = []
+        for i1, i2 in zip(range(precision+1), range(1, precision+1)):
+            angle_1 = 2 * np.pi / precision * i1
+            angle_2 = 2 * np.pi / precision * i2
+            x1, z1 = pol2cart(r1, angle_1)
+            x2, z2 = pol2cart(r2, angle_1)
+            x3, z3 = pol2cart(r2, angle_2)
+            x4, z4 = pol2cart(r1, angle_2)
+            p1, p2, p3, p4 = [map_proc(QVector3D(x, y, z))
+                            for x, z in ((x1, z1), (x2, z2), (x3,z3), (x4,z4))]
+
+            polygons.append([(p.x(), p.y(), p.z()) for p in (p1, p2, p3, p4)])
+            normal = map_norm(QVector3D(0, y_dir, 0))
+            [normals.append((normal.x(), normal.y(), normal.z()))
+             for _ in range(4)]
+        return polygons, normals
+
     def getObjectCoords(self, precision=20):
-        polygons = [
-            ((0, 0, 0), (0, 1, 0), (1, 1, 0), (1, 0, 0)),
-            ((0, 0, 1), (0, 1, 1), (1, 1, 1), (1, 0, 1)),
-            ((0, 0, 0), (0, 0, 1), (1, 0, 1), (1, 0, 0)),
-            ((0, 1, 0), (0, 1, 1), (1, 1, 1), (1, 1, 0)),
-            ((0, 0, 0), (0, 0, 1), (0, 1, 1), (0, 1, 0)),
-            ((1, 0, 0), (1, 0, 1), (1, 1, 1), (1, 1, 0))
-        ]
-        normals = [
-            (0, 0, -1),
-            (0, 0, 1),
-            (0, -1, 0),
-            (0, 1, 0),
-            (-1, 0, 0),
-            (1, 0, 0)
-        ]
-        new_normals = []
-        [[new_normals.append(QVector3D(*normals[i])) for _ in range(len(polygons[i]))]
-         for i in range(len(polygons))]
-        center = (0.5, 0.5, 0.5)
-        return polygons, new_normals, center
+        center = QVector3D(0.5, 0.5, 0.5)
+        map_proc = lambda vec: vec + center
+        map_norm = lambda vec: vec
+        screw_vertical = [(1, 0, 1, 6),
+                          (0.5, 0, 1, 6)]
+        screw_flat = [(0.5, 1, 0, -1, 6),
+                      (0.5, 1, 1, 1, 6)]
+
+        coords, normals = [], []
+        for obj in screw_vertical:
+            coords_, normals_ = self.getCircleApprox(*obj, map_proc, map_norm)
+            coords += coords_
+            normals += normals_
+
+        for obj in screw_flat:
+            coords_, normals_ = self.getFlatCircleApprox(*obj, map_proc, map_norm)
+            coords += coords_
+            normals += normals_
+
+        return coords, normals, center
 
     def drawObject(self):
         coords, normals, center = self.getObjectCoords(self.precision)
@@ -165,7 +209,7 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         self.shaders.setAttributeArray("v_normal", normals)
         self.shaders.enableAttributeArray("v_normal")
 
-        self.shaders.setUniformValue("Center", QVector3D(*center))
+        self.shaders.setUniformValue("Center", center)
         self.shaders.setUniformValue("ambientStrength", self.ambient)
         self.shaders.setUniformValue("diffuseStrength", self.diffuse)
         self.shaders.setUniformValue("phongModel", True)

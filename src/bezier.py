@@ -107,7 +107,6 @@ class MainWindow(QMainWindow, Ui_BezierWindow):
         self.paintControlLines()
 
     def paintControlLines(self):
-        import pdb; pdb.set_trace()  # XXX BREAKPOINT
         GL.glColor4d(1, 1, 1, 1)
         GL.glBegin(GL.GL_LINE_STRIP)
         [GL.glVertex2d(*c.center()) for c in self.controls]
