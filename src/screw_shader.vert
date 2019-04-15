@@ -7,7 +7,6 @@ in vec3 v_normal;
 
 uniform mat4 ModelViewMatrix;
 uniform mat4 MVP;
-uniform mat4 ScaleMatrix;
 
 out vec3 Normal;
 out vec3 Position;
@@ -22,6 +21,6 @@ void main(){
     
     Normal = v_normal;
 
-    gl_Position = MVP * ScaleMatrix * pos;
+    gl_Position = MVP * pos;
 
 }

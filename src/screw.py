@@ -3,7 +3,7 @@ import numpy as np
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMainWindow, QApplication
 from PyQt5.QtGui import QOpenGLShaderProgram, QOpenGLShader, QMatrix4x4, \
-    QVector3D, QVector4D
+    QVector3D, QVector4D, QMatrix3x3
 from OpenGL import GL
 from matplotlib import tri
 
@@ -21,7 +21,8 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         self.openGLWidget.initializeGL = self.initializeGL
         self.openGLWidget.paintGL = self.paintGL
         self.keyPressEvent = self.onKeyPressed
-        self.objectAngleX, self.objectAngleY = 0, 0
+        self.objectAngleX, self.objectAngleY, self.objectAngleZ = 0, 0, 0
+        self.object_center = QVector3D(0.5, 0.5, 0.5)
         self.camera_pos = QVector3D(0, 0, 4)
         self.scale_vec = QVector3D(1, 1, 1)
         self.ambient = 0.2
@@ -86,15 +87,10 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
             QVector3D(0, 0, 0),
             QVector3D(0, 1, 0)
         )
-        modelview.rotate(self.objectAngleX, 1, 0, 0)
-        modelview.rotate(self.objectAngleY, 0, 1, 0)
 
-        scale = QMatrix4x4()
-        scale.scale(self.scale_vec)
 
         self.shaders.setUniformValue("ModelViewMatrix", modelview)
         self.shaders.setUniformValue("MVP", proj * modelview)
-        self.shaders.setUniformValue("ScaleMatrix", scale)
         self.shaders.setUniformValue("LightPos", self.light_pos)
 
     def drawStuff(self):
@@ -185,6 +181,21 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
              for _ in range(len(polygon))]
         return polygons, normals
 
+    def map_point(self, point: QVector3D):
+        matr = QMatrix4x4()
+        matr.rotate(self.objectAngleX, QVector3D(1, 0, 0))
+        matr.rotate(self.objectAngleY, QVector3D(0, 1, 0))
+        matr.rotate(self.objectAngleZ, QVector3D(0, 0, 1))
+        matr.scale(self.scale_vec)
+#        matr.translate(self.object_center)
+
+        point = point * matr
+
+        return point + self.object_center
+
+    def map_normal(self, normal: QVector3D):
+        return normal
+
     def getObjectCoords(self, precision=20):
         def get_carving(norm_r, carve_r, y_start, carve_h, num, precision):
             vert, hor = [], []
@@ -204,8 +215,8 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
             return vert, hor
 
         center = QVector3D(0.5, 0.5, 0.5)
-        map_proc = lambda vec: vec + center
-        map_norm = lambda vec: vec
+        map_proc = self.map_point
+        map_norm = self.map_normal
         vert, hor = [], []
         vert, hor = get_carving(0.8, 0.7, 0, 0.05, 5, precision)
         v, h = get_carving(0.6, 0.5, 0.05*11, 0.05, 5, precision)
@@ -342,31 +353,49 @@ class MainWindow(QMainWindow, Ui_ShadersWindow):
         self.moveCameraForward.clicked.connect(lambda: self.moveCamera(z=-1))
         self.moveCameraBackward.clicked.connect(lambda: self.moveCamera(z=1))
 
-        self.rotateObjectUp.clicked.connect(lambda: self.rotateObject(1, 0))
-        self.rotateObjectDown.clicked.connect(lambda: self.rotateObject(-1, 0))
-        self.rotateObjectLeft.clicked.connect(lambda: self.rotateObject(0, -1))
-        self.rotateObjectRight.clicked.connect(lambda: self.rotateObject(0, 1))
+        self.rotateObjectUp.clicked.connect(lambda: self.rotateObject(x=-1))
+        self.rotateObjectDown.clicked.connect(lambda: self.rotateObject(x=1))
+        self.rotateObjectLeft.clicked.connect(lambda: self.rotateObject(y=-1))
+        self.rotateObjectRight.clicked.connect(lambda: self.rotateObject(y=1))
+        self.rotateObjectForward.clicked.connect(
+            lambda: self.rotateObject(z=1))
+        self.rotateObjectBackward.clicked.connect(
+            lambda: self.rotateObject(z=-1))
 
         self.xScaleSpinBox.valueChanged.connect(lambda x: self.scaleView(x=x))
         self.yScaleSpinBox.valueChanged.connect(lambda y: self.scaleView(y=y))
         self.zScaleSpinBox.valueChanged.connect(lambda z: self.scaleView(z=z))
 
-        self.precisionSlider.valueChanged.connect(lambda p: setattr(self, 'precision', p))
-        self.ambientSlider.valueChanged.connect(lambda v: setattr(self, 'ambient', v / 100))
-        self.diffuseSlider.valueChanged.connect(lambda v: setattr(self, 'diffuse', v / 100))
-        self.alphaSlider.valueChanged.connect(lambda a: setattr(self,
-            'screw_color',
-            (self.screw_color[0], self.screw_color[1], self.screw_color[2],
-             a / 100)))
+        self.xCenterSpinBox.valueChanged.connect(
+            lambda x: self.object_center.setX(x))
+        self.yCenterSpinBox.valueChanged.connect(
+            lambda y: self.object_center.setY(y))
+        self.zCenterSpinBox.valueChanged.connect(
+            lambda z: self.object_center.setZ(z))
 
-        self.drawLinesCheckBox.stateChanged.connect(lambda s: setattr(self, 'draw_lines', s))
-        self.invisibleCheckBox.stateChanged.connect(lambda s: setattr(self, 'invisible', s))
+        self.precisionSlider.valueChanged.connect(
+            lambda p: setattr(self, 'precision', p))
+        self.ambientSlider.valueChanged.connect(
+            lambda v: setattr(self, 'ambient', v / 100))
+        self.diffuseSlider.valueChanged.connect(
+            lambda v: setattr(self, 'diffuse', v / 100))
+        self.alphaSlider.valueChanged.connect(
+            lambda a: setattr(self, 'screw_color',
+                (self.screw_color[0], self.screw_color[1], self.screw_color[2],
+                 a / 100)))
+
+        self.drawLinesCheckBox.stateChanged.connect(
+            lambda s: setattr(self, 'draw_lines', s))
+        self.invisibleCheckBox.stateChanged.connect(
+            lambda s: setattr(self, 'invisible', s))
 
 
-    def rotateObject(self, x, y):
+    def rotateObject(self, x=0, y=0, z=0):
         angle_move = 5
         self.objectAngleX = (self.objectAngleX + angle_move * x) % 360
         self.objectAngleY = (self.objectAngleY + angle_move * y) % 360
+        self.objectAngleZ = (self.objectAngleZ + angle_move * z) % 360
+
 
     def moveCamera(self, x=0, y=0, z=0):
         camera_move = 0.2
